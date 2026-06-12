@@ -10,6 +10,13 @@ type NexusUpdaterApi = {
   installNow(): void
 }
 
+type NexusWindowControlsApi = {
+  minimize(): void
+  maximize(): void
+  close(): void
+}
+
 interface Window {
   nexusUpdater?: NexusUpdaterApi
+  windowControls?: NexusWindowControlsApi
 }

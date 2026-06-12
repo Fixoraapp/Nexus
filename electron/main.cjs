@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron')
+const { app, BrowserWindow, Menu, ipcMain } = require('electron')
 const { autoUpdater } = require('electron-updater')
 const path = require('node:path')
 
@@ -56,6 +56,32 @@ function setupAutoUpdater() {
 
   ipcMain.on('install-update', () => {
     autoUpdater.quitAndInstall()
+  })
+}
+
+function setupWindowControls() {
+  ipcMain.on('window:minimize', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.minimize()
+    }
+  })
+
+  ipcMain.on('window:maximize', () => {
+    if (!mainWindow || mainWindow.isDestroyed()) {
+      return
+    }
+
+    if (mainWindow.isMaximized()) {
+      mainWindow.unmaximize()
+    } else {
+      mainWindow.maximize()
+    }
+  })
+
+  ipcMain.on('window:close', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.close()
+    }
   })
 }
 
@@ -167,11 +193,12 @@ function createSplashWindow() {
 
 function createMainWindow() {
   mainWindow = new BrowserWindow({
-    width: 1440,
-    height: 900,
-    minWidth: 1100,
-    minHeight: 720,
+    width: 1600,
+    height: 950,
+    minWidth: 1200,
+    minHeight: 750,
     backgroundColor: '#070A12',
+    frame: false,
     show: false,
     title: 'Nexus',
     webPreferences: {
@@ -204,7 +231,9 @@ function createMainWindow() {
 }
 
 app.whenReady().then(() => {
+  Menu.setApplicationMenu(null)
   setupAutoUpdater()
+  setupWindowControls()
   createSplashWindow()
   createMainWindow()
 
