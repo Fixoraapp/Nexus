@@ -3,40 +3,35 @@ import { Link } from 'react-router-dom'
 
 export function RegisterPage() {
   return (
-    <motion.section
-      className="auth-card"
-      initial={{ opacity: 0, y: 22 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45 }}
-    >
-      <Link className="brand auth-brand" to="/">
+    <motion.section className="auth-card" initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }}>
+      <Link className="brand auth-brand" to="/app">
         <span className="brand-mark">N</span>
         <span>
           <strong>Nexus</strong>
-          <small>Create your hub</small>
+          <small>Создать пространство</small>
         </span>
       </Link>
       <div className="auth-heading">
-        <h1>Register</h1>
-        <p>Start a premium workspace for your team, guild, or creator community.</p>
+        <h1>Регистрация</h1>
+        <p>Запустите премиальное пространство для команды, игрового клуба или приватного сообщества.</p>
       </div>
       <form className="auth-form">
         <label>
-          Name
-          <input type="text" placeholder="Your name" />
+          Имя пользователя
+          <input type="text" placeholder="alex" />
         </label>
         <label>
           Email
           <input type="email" placeholder="you@nexus.app" />
         </label>
         <label>
-          Password
-          <input type="password" placeholder="Create password" />
+          Пароль
+          <input type="password" placeholder="Создайте пароль" />
         </label>
-        <button type="button">Create account</button>
+        <button type="button">Создать аккаунт</button>
       </form>
       <p className="auth-switch">
-        Already have an account? <Link to="/login">Login</Link>
+        Уже есть аккаунт? <Link to="/login">Войти</Link>
       </p>
     </motion.section>
   )

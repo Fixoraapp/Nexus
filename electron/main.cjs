@@ -167,11 +167,11 @@ function createSplashWindow() {
 
 function createMainWindow() {
   mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 820,
-    minWidth: 980,
-    minHeight: 680,
-    backgroundColor: '#0B1020',
+    width: 1440,
+    height: 900,
+    minWidth: 1100,
+    minHeight: 720,
+    backgroundColor: '#070A12',
     show: false,
     title: 'Nexus',
     webPreferences: {
