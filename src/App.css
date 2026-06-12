@@ -1644,6 +1644,326 @@
   box-shadow: 0 22px 54px rgba(109, 93, 255, 0.44);
 }
 
+.setup-page {
+  display: grid;
+  min-height: 100%;
+  place-items: center;
+  padding: 28px;
+  overflow: auto;
+  background:
+    radial-gradient(circle at 18% 10%, rgba(59, 130, 246, 0.16), transparent 36%),
+    radial-gradient(circle at 78% 18%, rgba(109, 93, 255, 0.22), transparent 32%),
+    linear-gradient(145deg, #070a12, #0b1222 64%, #070a12);
+}
+
+.setup-container {
+  width: min(780px, 100%);
+  min-height: 676px;
+  overflow: hidden;
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  border-radius: 32px;
+  background:
+    radial-gradient(circle at 50% 14%, rgba(109, 93, 255, 0.12), transparent 22%),
+    rgba(12, 18, 32, 0.75);
+  box-shadow:
+    0 34px 120px rgba(0, 0, 0, 0.56),
+    0 0 70px rgba(59, 130, 246, 0.18);
+  backdrop-filter: blur(24px);
+}
+
+.setup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 76px;
+  padding: 0 24px;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.34);
+  background: rgba(4, 7, 14, 0.52);
+}
+
+.setup-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 24px;
+}
+
+.nexus-icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--primary), #825dff);
+  box-shadow: 0 14px 36px rgba(109, 93, 255, 0.52);
+}
+
+.setup-window-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.setup-window-buttons span {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.07);
+  color: #b9c7ea;
+}
+
+.setup-window-buttons span:last-child {
+  background: rgba(255, 93, 115, 0.08);
+}
+
+.setup-step {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  min-height: 600px;
+  padding: 32px;
+}
+
+.setup-step h1 {
+  color: #dfe9ff;
+  font-size: 32px;
+  line-height: 1.1;
+}
+
+.setup-step p {
+  color: #c3d4f8;
+  font-size: 16px;
+}
+
+.setup-hero-icon,
+.setup-success {
+  display: grid;
+  justify-self: center;
+  width: 90px;
+  height: 90px;
+  place-items: center;
+  border-radius: 30px;
+  background: linear-gradient(145deg, rgba(109, 93, 255, 0.42), rgba(53, 194, 255, 0.14));
+  color: #8bc7ff;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 22px 58px rgba(109, 93, 255, 0.2);
+}
+
+.setup-success {
+  color: var(--success);
+  background: linear-gradient(145deg, rgba(53, 208, 127, 0.24), rgba(109, 93, 255, 0.12));
+}
+
+.license-box,
+.folder-selector,
+.setup-summary,
+.install-details {
+  border: 1px solid rgba(59, 130, 246, 0.28);
+  border-radius: 20px;
+  background: rgba(4, 8, 16, 0.46);
+}
+
+.license-box {
+  display: grid;
+  gap: 18px;
+  min-height: 180px;
+  margin-top: 12px;
+  padding: 20px;
+}
+
+.license-box strong {
+  color: #dce8ff;
+}
+
+.license-box p {
+  color: #bfd0f2;
+  font-size: 13px;
+}
+
+.setup-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: #dbe7ff;
+  font-weight: 900;
+}
+
+.setup-checkbox input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--primary);
+}
+
+.nav-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: auto;
+}
+
+.btn-next,
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 132px;
+  min-height: 40px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 900;
+  transition: 160ms ease;
+}
+
+.btn-next {
+  border: 0;
+  background: linear-gradient(135deg, #3b82f6, var(--primary));
+  color: white;
+  box-shadow: 0 16px 42px rgba(109, 93, 255, 0.32);
+}
+
+.btn-next:disabled {
+  cursor: default;
+  filter: grayscale(0.4);
+  opacity: 0.5;
+  box-shadow: none;
+}
+
+.btn-back {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: #dce8ff;
+}
+
+.btn-next:not(:disabled):hover,
+.btn-back:hover {
+  transform: translateY(-1px);
+}
+
+.folder-selector {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 18px;
+}
+
+.folder-selector label {
+  display: grid;
+  gap: 8px;
+  color: #dbe7ff;
+  font-weight: 900;
+}
+
+.folder-selector input {
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius);
+  outline: 0;
+  background: rgba(255, 255, 255, 0.055);
+  color: #f4f7ff;
+  font-family: "Cascadia Mono", Consolas, monospace;
+}
+
+.folder-selector button {
+  align-self: end;
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid rgba(59, 130, 246, 0.34);
+  border-radius: var(--radius);
+  background: rgba(59, 130, 246, 0.12);
+  color: #dce8ff;
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.setup-summary,
+.install-details {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 16px 20px;
+}
+
+.setup-summary div,
+.install-details div {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
+.setup-summary div:last-child,
+.install-details div:last-child {
+  border-bottom: 0;
+}
+
+.setup-summary dt,
+.install-details dt {
+  color: #a9bce4;
+  font-weight: 900;
+}
+
+.setup-summary dd,
+.install-details dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: #dbe6ff;
+}
+
+.setup-status {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 54px;
+  padding: 0 20px;
+  border-radius: 999px;
+  background: rgba(4, 8, 16, 0.68);
+  box-shadow: inset 3px 0 0 rgba(59, 130, 246, 0.9);
+}
+
+.setup-progress-head {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  color: #9bbcff;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.progress-fill {
+  height: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.progress-fill span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #8b6fff, #35c2ff);
+  box-shadow: 0 0 28px rgba(109, 93, 255, 0.52);
+  transition: width 120ms ease;
+}
+
+.setup-installing,
+.setup-complete {
+  align-content: center;
+}
+
+.setup-complete {
+  justify-items: center;
+  text-align: center;
+}
+
+.setup-complete .nav-buttons {
+  justify-self: stretch;
+  width: 100%;
+}
+
 @keyframes installerPulse {
   0%, 100% {
     transform: scale(1);

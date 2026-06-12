@@ -8,7 +8,7 @@ type NexusUpdaterApi = {
   on(channel: 'update-progress', callback: (percent: number) => void): () => void
   on(channel: 'update-ready', callback: () => void): () => void
   installNow(): void
-  installDownloadedUpdate(): void
+  installDownloadedUpdate(): Promise<void>
 }
 
 type NexusWindowControlsApi = {

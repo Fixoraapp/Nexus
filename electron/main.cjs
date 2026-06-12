@@ -59,7 +59,7 @@ function setupAutoUpdater() {
   }
 
   ipcMain.on('install-update', installDownloadedUpdate)
-  ipcMain.on('update:install-downloaded', installDownloadedUpdate)
+  ipcMain.handle('update:install-downloaded', installDownloadedUpdate)
 }
 
 function setupWindowControls() {

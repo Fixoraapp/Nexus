@@ -73,7 +73,7 @@ export function NexusUpdateInstaller({ version, onInstall }: Props) {
         <header className="installer-titlebar">
           <div className="installer-title">
             <span className="installer-logo"><PackageCheck size={18} /></span>
-            <strong>Мастер обновления Nexus</strong>
+            <strong>Обновление Nexus</strong>
           </div>
           <div className="installer-window-dots" aria-hidden="true">
             <span><Minus size={14} /></span>
