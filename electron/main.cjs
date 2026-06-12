@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, ipcMain } = require('electron')
+const { app, BrowserWindow, ipcMain } = require('electron')
 const { autoUpdater } = require('electron-updater')
 const path = require('node:path')
 
@@ -32,17 +32,6 @@ function setupAutoUpdater() {
 
   autoUpdater.on('update-available', () => {
     sendUpdateStatus('update-available', 'Доступно новое обновление Nexus. Скачиваем...')
-
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      dialog.showMessageBox(mainWindow, {
-        type: 'info',
-        title: 'Nexus Update',
-        message: 'Доступно новое обновление Nexus. Скачиваем...',
-        detail: 'Nexus загрузит обновление в фоне и сообщит, когда оно будет готово к установке.',
-        buttons: ['Хорошо'],
-        defaultId: 0,
-      })
-    }
   })
 
   autoUpdater.on('update-not-available', () => {
@@ -55,28 +44,10 @@ function setupAutoUpdater() {
     sendUpdateProgress(percent)
   })
 
-  autoUpdater.on('update-downloaded', async () => {
+  autoUpdater.on('update-downloaded', () => {
     sendUpdateStatus('update-downloaded', 'Обновление Nexus готово.')
     sendUpdateProgress(100)
     sendUpdateReady()
-
-    if (!mainWindow || mainWindow.isDestroyed()) {
-      return
-    }
-
-    const result = await dialog.showMessageBox(mainWindow, {
-      type: 'question',
-      title: 'Nexus Update',
-      message: 'Обновление Nexus готово. Установить сейчас?',
-      detail: 'Приложение перезапустится, чтобы завершить установку новой версии.',
-      buttons: ['Установить сейчас', 'Позже'],
-      defaultId: 0,
-      cancelId: 1,
-    })
-
-    if (result.response === 0) {
-      autoUpdater.quitAndInstall()
-    }
   })
 
   autoUpdater.on('error', (error) => {

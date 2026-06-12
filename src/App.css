@@ -544,7 +544,59 @@
   padding-bottom: 64px;
 }
 
-.update-toast {
+.update-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 24% 18%, rgba(79, 124, 255, 0.22), transparent 34%),
+    radial-gradient(circle at 76% 26%, rgba(123, 97, 255, 0.3), transparent 36%),
+    linear-gradient(145deg, rgba(11, 16, 32, 0.96), rgba(18, 26, 45, 0.98));
+  backdrop-filter: blur(18px);
+}
+
+.update-overlay-content {
+  display: grid;
+  justify-items: center;
+  gap: 24px;
+  width: min(520px, 100%);
+  padding: 48px;
+  text-align: center;
+}
+
+.update-overlay-mark {
+  display: grid;
+  width: 118px;
+  height: 118px;
+  place-items: center;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--blue), var(--violet));
+  color: white;
+  font-size: 58px;
+  font-weight: 900;
+  box-shadow: 0 28px 72px rgba(123, 97, 255, 0.36);
+}
+
+.update-overlay-copy {
+  display: grid;
+  gap: 10px;
+}
+
+.update-overlay-copy h2 {
+  font-size: clamp(34px, 5vw, 64px);
+  line-height: 1;
+}
+
+.update-overlay-copy p {
+  color: var(--muted);
+  font-size: 18px;
+}
+
+.update-toast,
+.update-ready-modal {
   position: fixed;
   right: 24px;
   bottom: 24px;
@@ -561,6 +613,11 @@
     radial-gradient(circle at 88% 18%, rgba(123, 97, 255, 0.22), transparent 42%);
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.42);
   backdrop-filter: blur(22px);
+}
+
+.update-ready-modal {
+  z-index: 45;
+  width: min(430px, calc(100vw - 32px));
 }
 
 .update-toast-mark {
@@ -617,7 +674,17 @@
   transition: width 220ms ease;
 }
 
-.update-toast button {
+.update-progress-large {
+  width: min(360px, 100%);
+  height: 10px;
+}
+
+.update-progress-large span {
+  box-shadow: 0 0 30px rgba(123, 97, 255, 0.5);
+}
+
+.update-toast button,
+.update-ready-modal button {
   justify-self: start;
   min-height: 36px;
   padding: 0 14px;
@@ -757,7 +824,12 @@
     padding: 24px;
   }
 
-  .update-toast {
+  .update-overlay-content {
+    padding: 32px 18px;
+  }
+
+  .update-toast,
+  .update-ready-modal {
     right: 16px;
     bottom: 16px;
   }
