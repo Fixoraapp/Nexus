@@ -1,0 +1,164 @@
+const { app, BrowserWindow } = require('electron')
+const path = require('node:path')
+
+const isDev = Boolean(process.env.VITE_DEV_SERVER_URL)
+
+let mainWindow
+let splashWindow
+
+const splashMarkup = `
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 20% 20%, rgba(79, 124, 255, 0.32), transparent 32%),
+          radial-gradient(circle at 78% 28%, rgba(123, 97, 255, 0.36), transparent 34%),
+          linear-gradient(145deg, #0B1020 0%, #121A2D 54%, #1A2540 100%);
+        color: #eef3ff;
+        font-family: Inter, Segoe UI, system-ui, sans-serif;
+      }
+      .shell {
+        width: 340px;
+        min-height: 280px;
+        display: grid;
+        place-items: center;
+        gap: 22px;
+        padding: 40px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 28px;
+        background: rgba(18, 26, 45, 0.72);
+        box-shadow: 0 28px 90px rgba(0, 0, 0, 0.38);
+        backdrop-filter: blur(20px);
+      }
+      .mark {
+        width: 86px;
+        height: 86px;
+        display: grid;
+        place-items: center;
+        border-radius: 26px;
+        background: linear-gradient(135deg, #4F7CFF, #7B61FF);
+        box-shadow: 0 18px 48px rgba(79, 124, 255, 0.36);
+        font-size: 42px;
+        font-weight: 800;
+      }
+      h1 {
+        margin: 0;
+        font-size: 34px;
+        letter-spacing: 0;
+      }
+      p {
+        margin: 0;
+        color: #aab6d3;
+        font-size: 14px;
+      }
+      .bar {
+        width: 180px;
+        height: 5px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.12);
+      }
+      .bar::before {
+        content: "";
+        display: block;
+        width: 46%;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #4F7CFF, #7B61FF);
+        animation: load 1.25s ease-in-out infinite;
+      }
+      @keyframes load {
+        0% { transform: translateX(-90%); }
+        100% { transform: translateX(230%); }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <div class="mark">N</div>
+      <div>
+        <h1>Nexus</h1>
+        <p>Launching secure communities</p>
+      </div>
+      <div class="bar"></div>
+    </main>
+  </body>
+</html>
+`
+
+function createSplashWindow() {
+  splashWindow = new BrowserWindow({
+    width: 460,
+    height: 420,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    show: true,
+    alwaysOnTop: true,
+    webPreferences: {
+      sandbox: true,
+    },
+  })
+
+  splashWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(splashMarkup)}`)
+}
+
+function createMainWindow() {
+  mainWindow = new BrowserWindow({
+    width: 1280,
+    height: 820,
+    minWidth: 980,
+    minHeight: 680,
+    backgroundColor: '#0B1020',
+    show: false,
+    title: 'Nexus',
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+    },
+  })
+
+  if (isDev) {
+    mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL)
+    mainWindow.webContents.openDevTools({ mode: 'detach' })
+  } else {
+    mainWindow.loadFile(path.join(__dirname, '..', 'dist', 'index.html'))
+  }
+
+  mainWindow.once('ready-to-show', () => {
+    setTimeout(() => {
+      if (splashWindow && !splashWindow.isDestroyed()) {
+        splashWindow.close()
+      }
+      mainWindow.show()
+    }, 700)
+  })
+}
+
+app.whenReady().then(() => {
+  createSplashWindow()
+  createMainWindow()
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createSplashWindow()
+      createMainWindow()
+    }
+  })
+})
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
+    app.quit()
+  }
+})
