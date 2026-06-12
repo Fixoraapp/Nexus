@@ -1,6 +1,60 @@
-# React + TypeScript + Vite
+# Nexus
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Premium dark Windows desktop app built with React, TypeScript, Vite, Electron, and electron-builder.
+
+## Development
+
+```bash
+npm run desktop
+```
+
+`npm run desktop` starts the Vite dev server and opens Electron against `http://localhost:5173`.
+Auto updates are disabled in development mode.
+
+## Production Build
+
+```bash
+npm run dist
+```
+
+The Windows NSIS installer is created in `release/`.
+
+## Auto Updates
+
+Nexus uses `electron-updater` with GitHub Releases:
+
+- Provider: GitHub
+- Owner: `Fixoraapp`
+- Repo: `Nexus`
+
+Auto updates run only when the Electron app is packaged. In production, Nexus checks for updates, downloads them in the background, shows update progress inside the app, and asks the user whether to install when the update is ready.
+
+## Как выпускать обновление
+
+1. Поменять `version` в `package.json`, например на `1.0.1`.
+2. Выполнить:
+
+```bash
+npm run dist
+```
+
+3. Создать GitHub Release в репозитории `Fixoraapp/Nexus`.
+4. Указать tag:
+
+```text
+v1.0.1
+```
+
+5. Загрузить в release файлы из папки `release/`:
+
+- `Nexus Setup 1.0.1.exe`
+- `latest.yml`
+
+6. Нажать `Publish release`.
+
+После публикации пользователи packaged Windows app получат уведомление об обновлении Nexus.
+
+## React + TypeScript + Vite
 
 Currently, two official plugins are available:
 

@@ -1,10 +1,92 @@
-const { app, BrowserWindow } = require('electron')
+const { app, BrowserWindow, dialog, ipcMain } = require('electron')
+const { autoUpdater } = require('electron-updater')
 const path = require('node:path')
 
 const isDev = Boolean(process.env.VITE_DEV_SERVER_URL)
 
 let mainWindow
 let splashWindow
+
+function sendUpdateStatus(status, message) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('update-status', { status, message })
+  }
+}
+
+function sendUpdateProgress(percent) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('update-progress', percent)
+  }
+}
+
+function sendUpdateReady() {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('update-ready')
+  }
+}
+
+function setupAutoUpdater() {
+  autoUpdater.on('checking-for-update', () => {
+    sendUpdateStatus('checking-for-update', 'Проверяем обновления Nexus...')
+  })
+
+  autoUpdater.on('update-available', () => {
+    sendUpdateStatus('update-available', 'Доступно новое обновление Nexus. Скачиваем...')
+
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      dialog.showMessageBox(mainWindow, {
+        type: 'info',
+        title: 'Nexus Update',
+        message: 'Доступно новое обновление Nexus. Скачиваем...',
+        detail: 'Nexus загрузит обновление в фоне и сообщит, когда оно будет готово к установке.',
+        buttons: ['Хорошо'],
+        defaultId: 0,
+      })
+    }
+  })
+
+  autoUpdater.on('update-not-available', () => {
+    sendUpdateStatus('update-not-available', 'У вас установлена последняя версия Nexus.')
+  })
+
+  autoUpdater.on('download-progress', (progress) => {
+    const percent = Math.round(progress.percent || 0)
+    sendUpdateStatus('download-progress', 'Nexus обновляется...')
+    sendUpdateProgress(percent)
+  })
+
+  autoUpdater.on('update-downloaded', async () => {
+    sendUpdateStatus('update-downloaded', 'Обновление Nexus готово.')
+    sendUpdateProgress(100)
+    sendUpdateReady()
+
+    if (!mainWindow || mainWindow.isDestroyed()) {
+      return
+    }
+
+    const result = await dialog.showMessageBox(mainWindow, {
+      type: 'question',
+      title: 'Nexus Update',
+      message: 'Обновление Nexus готово. Установить сейчас?',
+      detail: 'Приложение перезапустится, чтобы завершить установку новой версии.',
+      buttons: ['Установить сейчас', 'Позже'],
+      defaultId: 0,
+      cancelId: 1,
+    })
+
+    if (result.response === 0) {
+      autoUpdater.quitAndInstall()
+    }
+  })
+
+  autoUpdater.on('error', (error) => {
+    sendUpdateStatus('error', error.message || 'Не удалось проверить обновления Nexus.')
+  })
+
+  ipcMain.on('install-update', () => {
+    autoUpdater.quitAndInstall()
+  })
+}
 
 const splashMarkup = `
 <!doctype html>
@@ -124,6 +206,7 @@ function createMainWindow() {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
+      preload: path.join(__dirname, 'preload.cjs'),
       sandbox: true,
     },
   })
@@ -141,11 +224,16 @@ function createMainWindow() {
         splashWindow.close()
       }
       mainWindow.show()
+
+      if (app.isPackaged) {
+        autoUpdater.checkForUpdatesAndNotify()
+      }
     }, 700)
   })
 }
 
 app.whenReady().then(() => {
+  setupAutoUpdater()
   createSplashWindow()
   createMainWindow()
 
