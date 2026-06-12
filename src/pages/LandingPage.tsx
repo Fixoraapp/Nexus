@@ -29,6 +29,7 @@ export function LandingPage() {
         >
           <span className="eyebrow">Premium desktop communities</span>
           <h1>Nexus</h1>
+          <strong className="hero-version">Nexus Version 1.0.2</strong>
           <p>
             A dark, secure, voice-ready command center for communities that live
             across chat, events, rooms, and real-time collaboration.

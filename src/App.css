@@ -266,6 +266,16 @@
   font-size: 20px;
 }
 
+.hero-version {
+  font-size: clamp(28px, 4vw, 54px);
+  line-height: 1;
+}
+
+.hero-actions .primary-link {
+  background: var(--violet);
+  box-shadow: 0 14px 32px rgba(123, 97, 255, 0.3);
+}
+
 .hero-panel {
   display: grid;
   gap: 18px;
