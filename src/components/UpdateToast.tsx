@@ -1,16 +1,21 @@
 import { AnimatePresence, motion } from 'framer-motion'
+import { Clock, Download, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { NexusUpdateInstaller } from './NexusUpdateInstaller'
 
 type UpdateStatus = {
   status: string
   message: string
 }
 
+const appVersion = '1.0.4'
+
 export function UpdateToast() {
   const [status, setStatus] = useState<UpdateStatus | null>(null)
   const [progress, setProgress] = useState(0)
   const [isReady, setIsReady] = useState(false)
-  const [isInstalling, setIsInstalling] = useState(false)
+  const [showInstaller, setShowInstaller] = useState(false)
+  const [dismissed, setDismissed] = useState(false)
 
   useEffect(() => {
     if (!window.nexusUpdater) {
@@ -23,7 +28,8 @@ export function UpdateToast() {
       if (payload.status === 'update-available') {
         setProgress(0)
         setIsReady(false)
-        setIsInstalling(false)
+        setShowInstaller(false)
+        setDismissed(false)
       }
     })
 
@@ -34,9 +40,10 @@ export function UpdateToast() {
     const removeReadyListener = window.nexusUpdater.on('update-ready', () => {
       setProgress(100)
       setIsReady(true)
+      setDismissed(false)
       setStatus({
         status: 'update-downloaded',
-        message: 'Обновление Nexus готово.',
+        message: 'Обновление Nexus готово к установке.',
       })
     })
 
@@ -47,119 +54,73 @@ export function UpdateToast() {
     }
   }, [])
 
-  const shouldShow = useMemo(() => {
-    return Boolean(status && status.status !== 'update-not-available')
-  }, [status])
+  const shouldShowToast = useMemo(() => {
+    return Boolean(status && status.status !== 'update-not-available' && !dismissed && !showInstaller)
+  }, [dismissed, showInstaller, status])
 
-  const shouldShowOverlay = useMemo(() => {
-    return Boolean(
-      isInstalling ||
-        status?.status === 'update-available' ||
-        status?.status === 'download-progress',
-    )
-  }, [isInstalling, status])
+  const title = useMemo(() => {
+    if (status?.status === 'error') {
+      return 'Не удалось обновить Nexus'
+    }
 
-  const installUpdate = () => {
-    setIsInstalling(true)
-    setIsReady(false)
-    setStatus({
-      status: 'installing',
-      message: 'Пожалуйста, не закрывайте приложение',
-    })
+    if (isReady) {
+      return 'Обновление Nexus готово'
+    }
 
-    window.setTimeout(() => {
-      window.nexusUpdater?.installNow()
-    }, 700)
+    if (status?.status === 'download-progress' || status?.status === 'update-available') {
+      return 'Nexus загружает обновление'
+    }
+
+    return 'Проверка обновления'
+  }, [isReady, status])
+
+  const installDownloadedUpdate = () => {
+    window.nexusUpdater?.installDownloadedUpdate()
   }
 
   return (
     <>
       <AnimatePresence>
-        {shouldShowOverlay ? (
+        {shouldShowToast ? (
           <motion.aside
-            className="update-overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.32 }}
-            role="status"
-            aria-live="polite"
-          >
-            <motion.div
-              className="update-overlay-content"
-              initial={{ opacity: 0, y: 24, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 16, scale: 0.98 }}
-              transition={{ duration: 0.38, ease: 'easeOut' }}
-            >
-              <motion.div
-                className="update-overlay-mark"
-                animate={{ scale: [1, 1.05, 1] }}
-                transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-              >
-                N
-              </motion.div>
-              <div className="update-overlay-copy">
-                <h2>{isInstalling ? 'Устанавливаем обновление...' : 'Nexus обновляется...'}</h2>
-                <p>Пожалуйста, не закрывайте приложение</p>
-              </div>
-              <div className="update-progress update-progress-large" aria-label={`Update progress ${progress}%`}>
-                <span style={{ width: `${isInstalling ? 100 : progress}%` }}></span>
-              </div>
-            </motion.div>
-          </motion.aside>
-        ) : null}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {shouldShow && isReady ? (
-          <motion.aside
-            className="update-ready-modal"
+            className="update-toast nexus-update-toast"
             initial={{ opacity: 0, y: 22, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 18, scale: 0.98 }}
             transition={{ duration: 0.28 }}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="update-ready-title"
+            role="status"
+            aria-live="polite"
           >
             <div className="update-toast-mark">N</div>
             <div className="update-toast-content">
               <div className="update-toast-heading">
-                <span id="update-ready-title">Обновление готово</span>
+                <span>{title}</span>
                 <strong>{progress}%</strong>
               </div>
               <p>{status?.message}</p>
               <div className="update-progress" aria-label={`Update progress ${progress}%`}>
                 <span style={{ width: `${progress}%` }}></span>
               </div>
-              <button type="button" onClick={installUpdate}>
-                Установить и перезапустить
-              </button>
+              <div className="update-toast-actions">
+                {isReady ? (
+                  <button type="button" onClick={() => setShowInstaller(true)}>
+                    <Download size={15} />
+                    Установить
+                  </button>
+                ) : null}
+                <button type="button" onClick={() => setDismissed(true)}>
+                  {isReady ? <Clock size={15} /> : <X size={15} />}
+                  {isReady ? 'Позже' : 'Скрыть'}
+                </button>
+              </div>
             </div>
           </motion.aside>
         ) : null}
       </AnimatePresence>
 
       <AnimatePresence>
-        {shouldShow && status?.status === 'error' ? (
-          <motion.aside
-            className="update-toast"
-            initial={{ opacity: 0, y: 22, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 18, scale: 0.98 }}
-            transition={{ duration: 0.28 }}
-            role="status"
-            aria-live="polite"
-          >
-            <div className="update-toast-mark">N</div>
-            <div className="update-toast-content">
-              <div className="update-toast-heading">
-                <span>Не удалось обновить Nexus</span>
-              </div>
-              <p>{status?.message}</p>
-            </div>
-          </motion.aside>
+        {showInstaller ? (
+          <NexusUpdateInstaller version={appVersion} onInstall={installDownloadedUpdate} />
         ) : null}
       </AnimatePresence>
     </>

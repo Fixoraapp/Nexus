@@ -22,6 +22,9 @@ contextBridge.exposeInMainWorld('nexusUpdater', {
   installNow() {
     ipcRenderer.send('install-update')
   },
+  installDownloadedUpdate() {
+    ipcRenderer.send('update:install-downloaded')
+  },
 })
 
 contextBridge.exposeInMainWorld('windowControls', {

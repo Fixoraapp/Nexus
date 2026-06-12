@@ -54,9 +54,12 @@ function setupAutoUpdater() {
     sendUpdateStatus('error', error.message || 'Не удалось проверить обновления Nexus.')
   })
 
-  ipcMain.on('install-update', () => {
-    autoUpdater.quitAndInstall()
-  })
+  const installDownloadedUpdate = () => {
+    autoUpdater.quitAndInstall(false, true)
+  }
+
+  ipcMain.on('install-update', installDownloadedUpdate)
+  ipcMain.on('update:install-downloaded', installDownloadedUpdate)
 }
 
 function setupWindowControls() {
