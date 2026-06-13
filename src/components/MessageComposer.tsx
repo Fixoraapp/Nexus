@@ -1,5 +1,6 @@
 import { Gift, Plus, Send, Smile } from 'lucide-react'
 import { useState } from 'react'
+import { EmojiPicker } from './EmojiPicker'
 
 type Props = {
   channelName: string
@@ -7,15 +8,18 @@ type Props = {
 }
 
 export function MessageComposer({ channelName, sendMessage }: Props) {
+  const [emojiOpen, setEmojiOpen] = useState(false)
   const [value, setValue] = useState('')
+  const canSend = Boolean(value.trim())
 
   const submit = () => {
+    if (!canSend) return
     sendMessage(value)
     setValue('')
   }
 
   return (
-    <div className="message-composer">
+    <div className="message-composer pro-message-composer">
       <button type="button" title="Добавить вложение"><Plus size={20} /></button>
       <textarea
         value={value}
@@ -31,8 +35,11 @@ export function MessageComposer({ channelName, sendMessage }: Props) {
       />
       <button type="button" title="Подарок"><Gift size={20} /></button>
       <button className="gif-button" type="button" title="GIF">GIF</button>
-      <button type="button" title="Эмодзи"><Smile size={20} /></button>
-      <button className="send-button" type="button" onClick={submit} title="Отправить">
+      <span className="composer-emoji-wrap">
+        <button type="button" onClick={() => setEmojiOpen((value) => !value)} title="Эмодзи"><Smile size={20} /></button>
+        {emojiOpen ? <EmojiPicker onPick={(emoji) => setValue((current) => `${current}${emoji}`)} /> : null}
+      </span>
+      <button className="send-button" disabled={!canSend} type="button" onClick={submit} title="Отправить">
         <Send size={20} />
       </button>
     </div>

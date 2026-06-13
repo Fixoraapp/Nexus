@@ -4,16 +4,22 @@ import { Copy, MessageCircle, Search, Server, UserPlus, Users } from 'lucide-rea
 import { AddServerModal } from '../components/AddServerModal'
 import { ActivityModal } from '../components/ActivityModal'
 import { ChannelSidebar } from '../components/ChannelSidebar'
-import { ChatHeader } from '../components/ChatHeader'
 import { ChatMessage } from '../components/ChatMessage'
+import { ConfirmDialog } from '../components/ConfirmDialog'
+import { CreateCategoryModal } from '../components/CreateCategoryModal'
 import { CreateChannelModal } from '../components/CreateChannelModal'
+import { CreateEventModal } from '../components/CreateEventModal'
+import { InviteServerModal } from '../components/InviteServerModal'
 import { JoinServerModal } from '../components/JoinServerModal'
 import { MembersPanel } from '../components/MembersPanel'
 import { MessageComposer } from '../components/MessageComposer'
+import { ServerPrivacyModal } from '../components/ServerPrivacyModal'
+import { ServerProfileModal } from '../components/ServerProfileModal'
 import { ServerRail } from '../components/ServerRail'
+import { ServerSettingsModal } from '../components/ServerSettingsModal'
 import { SettingsModal } from '../components/SettingsModal'
-import { UserProfileModal } from '../components/UserProfileModal'
-import { VoiceRoom } from '../components/VoiceRoom'
+import { TextChannelView } from '../components/TextChannelView'
+import { VoiceChannelView } from '../components/VoiceChannelView'
 import { useNexusStore } from '../store/nexusStore'
 import { clearSession } from '../utils/authSession'
 
@@ -32,7 +38,8 @@ export function NexusAppLayout() {
     if (location.pathname.endsWith('/dm')) return <DirectMessagesSurface {...store} />
     if (location.pathname.endsWith('/settings')) return <SettingsSurface {...store} />
     if (!store.activeServer || store.activeChannelId === 'home') return <OnboardingSurface {...store} />
-    if (store.activeChannel?.type === 'voice') return <VoiceRoom {...store} />
+    if (store.activeChannel?.type === 'voice') return <VoiceChannelView {...store} />
+    return <TextChannelView {...store} />
 
     return (
       <main className="chat-main">
@@ -67,7 +74,6 @@ export function NexusAppLayout() {
       <ServerRail {...store} />
       <ChannelSidebar {...store} />
       <section className="workspace">
-        <ChatHeader {...store} />
         <div className="workspace-body">
           {renderMain()}
           {store.activeServer && store.membersVisible && !isFeaturePath ? <MembersPanel {...store} /> : null}
@@ -76,7 +82,31 @@ export function NexusAppLayout() {
 
       {store.activeModal === 'addServer' ? <AddServerModal {...store} /> : null}
       {store.activeModal === 'activity' ? <ActivityModal {...store} /> : null}
+      {store.activeModal === 'confirmLeaveServer' && store.activeServer ? (
+        <ConfirmDialog
+          confirmText="Покинуть сервер"
+          message={`Вы уверены, что хотите покинуть ${store.activeServer.name}?`}
+          onCancel={() => store.setActiveModal(null)}
+          onConfirm={() => store.leaveServer(store.activeServer?.id ?? '')}
+          title="Покинуть сервер"
+        />
+      ) : null}
+      {store.activeModal === 'createCategory' ? <CreateCategoryModal {...store} /> : null}
       {store.activeModal === 'createChannel' ? <CreateChannelModal {...store} /> : null}
+      {store.activeModal === 'createEvent' ? <CreateEventModal {...store} /> : null}
+      {store.activeModal === 'inviteServer' ? <InviteServerModal {...store} /> : null}
+      {store.activeModal === 'isolation' && store.activeServer ? (
+        <ConfirmDialog
+          confirmText="Понятно"
+          message="Изоляция сервера подготовлена как backend-ready действие. Подключение жестких moderation policy будет следующим этапом."
+          onCancel={() => store.setActiveModal(null)}
+          onConfirm={() => {
+            store.showToast('Изоляция сервера будет доступна после подключения moderation backend')
+            store.setActiveModal(null)
+          }}
+          title="Изоляция сервера"
+        />
+      ) : null}
       {store.activeModal === 'joinServer' ? (
         <div className="add-server-overlay">
           <JoinServerModal
@@ -86,8 +116,10 @@ export function NexusAppLayout() {
           />
         </div>
       ) : null}
+      {store.activeModal === 'serverPrivacy' ? <ServerPrivacyModal {...store} /> : null}
+      {store.activeModal === 'serverProfile' ? <ServerProfileModal {...store} /> : null}
+      {store.activeModal === 'serverSettings' ? <ServerSettingsModal {...store} /> : null}
       {store.activeModal === 'settings' ? <SettingsModal setActiveModal={store.setActiveModal} users={store.users} /> : null}
-      {store.activeModal === 'profile' ? <UserProfileModal setActiveModal={store.setActiveModal} users={store.users} /> : null}
       {store.toast ? <div className="nexus-toast">{store.toast}</div> : null}
     </div>
   )

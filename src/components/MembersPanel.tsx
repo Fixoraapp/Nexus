@@ -1,9 +1,9 @@
 import { Search, UserPlus } from 'lucide-react'
 import type { NexusStore } from '../store/nexusStore'
 
-type Props = Pick<NexusStore, 'createInvite' | 'roles' | 'serverUsers' | 'setActiveModal'>
+type Props = Pick<NexusStore, 'createInvite' | 'roles' | 'serverUsers' | 'setActiveModal' | 'voiceParticipants'>
 
-export function MembersPanel({ createInvite, roles, serverUsers, setActiveModal }: Props) {
+export function MembersPanel({ createInvite, roles, serverUsers, setActiveModal, voiceParticipants }: Props) {
   const grouped = [...roles]
     .sort((a, b) => b.priority - a.priority)
     .map((role) => ({
@@ -26,7 +26,7 @@ export function MembersPanel({ createInvite, roles, serverUsers, setActiveModal 
               <span className={`avatar avatar-${user.status}`}>{user.avatar}</span>
               <span>
                 <strong>{user.displayName}{role.id === 'owner' ? ' crown' : ''}</strong>
-                <small>{user.activity}</small>
+                <small>{voiceParticipants.some((participant) => participant.userId === user.id) ? 'В голосовом канале' : user.activity}</small>
               </span>
             </button>
           ))}

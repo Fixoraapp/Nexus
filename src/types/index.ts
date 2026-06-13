@@ -11,7 +11,7 @@ export type User = {
   email: string
 }
 
-export type ChannelType = 'text' | 'voice' | 'forum' | 'event'
+export type ChannelType = 'text' | 'voice' | 'forum' | 'event' | 'announcement' | 'project'
 
 export type ChannelCategory = 'information' | 'text' | 'voice' | 'events' | 'private'
 
@@ -21,8 +21,15 @@ export type Channel = {
   name: string
   type: ChannelType
   category: ChannelCategory
+  categoryId?: string
   isPrivate: boolean
   description: string
+  permissions?: {
+    mode: 'onlyMe' | 'members' | 'roles'
+    roleIds: string[]
+    userIds: string[]
+  }
+  position?: number
   unreadCount?: number
 }
 
@@ -73,6 +80,8 @@ export type NexusNotification = {
 
 export type VoiceParticipant = {
   userId: string
+  channelId?: string
+  joinedAt?: string
   speaking: boolean
   muted: boolean
   deafened: boolean
