@@ -13,29 +13,29 @@ export function ChatHeader({ activeChannel, membersVisible, notifications, searc
   return (
     <header className="chat-header">
       <div className="chat-title">
-        {isVoice ? <Volume2 size={20} /> : <Hash size={20} />}
+        {isVoice ? <Volume2 size={24} /> : <Hash size={24} />}
         <div>
-          <h1>{activeChannel?.name ?? 'Главная'}</h1>
-          <p>{activeChannel?.description ?? 'Панель управления сообществом Nexus.'}</p>
+          <h1>{activeChannel?.name ?? 'general'}</h1>
+          <p>{activeChannel?.description ?? 'Общий чат для всех участников сервера.'}</p>
         </div>
       </div>
       <div className="chat-tools">
         <label className="search-field">
-          <Search size={16} />
+          <Search size={17} />
           <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Поиск" />
         </label>
-        <button className="icon-button" type="button" title="Закрепленные">
-          <Pin size={18} />
+        <button className="icon-button" type="button" title="Закреплённые">
+          <Pin size={19} />
         </button>
         <NotificationBell notifications={notifications} />
-        <button className="icon-button" type="button" title="Личные сообщения">
-          <AtSign size={18} />
+        <button className="icon-button" type="button" title="Упоминания">
+          <AtSign size={19} />
         </button>
         <button className={`icon-button ${membersVisible ? 'is-on' : ''}`} type="button" onClick={() => setMembersVisible(!membersVisible)} title="Участники">
-          <Users size={18} />
+          <Users size={19} />
         </button>
         <button className="icon-button" type="button" onClick={() => setActiveModal('settings')} title="Настройки">
-          <Settings size={18} />
+          <Settings size={19} />
         </button>
       </div>
     </header>

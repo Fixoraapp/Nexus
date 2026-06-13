@@ -12,14 +12,14 @@ export function UserProfileBar({ deafened, muted, setActiveModal, setDeafened, s
         <span className="avatar avatar-online">{user.avatar}</span>
         <span>
           <strong>{user.displayName}</strong>
-          <small>@{user.username}</small>
+          <small>Онлайн</small>
         </span>
       </button>
       <div className="profile-actions">
         <button className={muted ? 'is-on' : ''} type="button" onClick={() => setMuted(!muted)} title="Микрофон">
           {muted ? <MicOff size={17} /> : <Mic size={17} />}
         </button>
-        <button className={deafened ? 'is-on' : ''} type="button" onClick={() => setDeafened(!deafened)} title="Звук">
+        <button className={deafened ? 'is-on' : ''} type="button" onClick={() => setDeafened(!deafened)} title="Наушники">
           <Headphones size={17} />
         </button>
         <button type="button" onClick={() => setActiveModal('settings')} title="Настройки">

@@ -8,7 +8,7 @@ export function NotificationBell({ notifications }: Props) {
 
   return (
     <button className="icon-button notification-button" type="button" title="Уведомления">
-      <Bell size={18} />
+      <Bell size={19} />
       {unread ? <span>{unread}</span> : null}
     </button>
   )

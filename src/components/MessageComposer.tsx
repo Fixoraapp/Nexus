@@ -1,4 +1,4 @@
-import { Gift, Mic, Paperclip, Send, Smile } from 'lucide-react'
+import { Gift, Plus, Send, Smile } from 'lucide-react'
 import { useState } from 'react'
 
 type Props = {
@@ -16,7 +16,7 @@ export function MessageComposer({ channelName, sendMessage }: Props) {
 
   return (
     <div className="message-composer">
-      <button type="button" title="Прикрепить файл"><Paperclip size={19} /></button>
+      <button type="button" title="Добавить вложение"><Plus size={20} /></button>
       <textarea
         value={value}
         onChange={(event) => setValue(event.target.value)}
@@ -26,14 +26,14 @@ export function MessageComposer({ channelName, sendMessage }: Props) {
             submit()
           }
         }}
-        placeholder={`Message #${channelName}`}
+        placeholder={`Написать #${channelName}`}
         rows={1}
       />
-      <button type="button" title="Подарок"><Gift size={19} /></button>
-      <button type="button" title="Эмодзи"><Smile size={19} /></button>
-      <button type="button" title="Голос"><Mic size={19} /></button>
+      <button type="button" title="Подарок"><Gift size={20} /></button>
+      <button className="gif-button" type="button" title="GIF">GIF</button>
+      <button type="button" title="Эмодзи"><Smile size={20} /></button>
       <button className="send-button" type="button" onClick={submit} title="Отправить">
-        <Send size={18} />
+        <Send size={20} />
       </button>
     </div>
   )

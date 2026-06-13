@@ -1,13 +1,28 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { events, messages as initialMessages, notifications, roles, servers, users, voiceParticipants as initialVoiceParticipants } from '../data/mockData'
 import type { Channel, Message, VoiceParticipant } from '../types'
 
 type ModalName = 'createServer' | 'createChannel' | 'settings' | 'profile' | null
 
-export function useNexusStore(initialServerId = 'nexus', initialChannelId = 'home') {
+const MESSAGE_STORAGE_KEY = 'nexus.messages.v1'
+
+const loadMessages = () => {
+  if (typeof window === 'undefined') {
+    return initialMessages
+  }
+
+  try {
+    const stored = window.localStorage.getItem(MESSAGE_STORAGE_KEY)
+    return stored ? (JSON.parse(stored) as Message[]) : initialMessages
+  } catch {
+    return initialMessages
+  }
+}
+
+export function useNexusStore(initialServerId = 'nexus', initialChannelId = 'nexus-general') {
   const [activeServerId, setActiveServerId] = useState(initialServerId)
   const [activeChannelId, setActiveChannelId] = useState(initialChannelId)
-  const [messages, setMessages] = useState<Message[]>(initialMessages)
+  const [messages, setMessages] = useState<Message[]>(loadMessages)
   const [voiceParticipants, setVoiceParticipants] = useState<VoiceParticipant[]>(initialVoiceParticipants)
   const [membersVisible, setMembersVisible] = useState(true)
   const [activeModal, setActiveModal] = useState<ModalName>(null)
@@ -32,12 +47,14 @@ export function useNexusStore(initialServerId = 'nexus', initialChannelId = 'hom
 
   const channelMessages = useMemo(() => {
     const channelId = activeChannel?.type === 'text' || activeChannel?.type === 'forum' ? activeChannel.id : 'nexus-general'
-    return messages.filter((message) => message.channelId === channelId)
-  }, [activeChannel, messages])
+    const normalizedSearch = search.trim().toLowerCase()
+    const list = messages.filter((message) => message.channelId === channelId)
+    return normalizedSearch ? list.filter((message) => message.content.toLowerCase().includes(normalizedSearch)) : list
+  }, [activeChannel, messages, search])
 
   const selectServer = (serverId: string) => {
     setActiveServerId(serverId)
-    setActiveChannelId('home')
+    setActiveChannelId(`${serverId}-general`)
   }
 
   const selectChannel = (channelId: string) => {
@@ -59,6 +76,23 @@ export function useNexusStore(initialServerId = 'nexus', initialChannelId = 'hom
     }
 
     setMessages((current) => [...current, message])
+  }
+
+  const editMessage = (messageId: string, content: string) => {
+    const nextContent = content.trim()
+    if (!nextContent) {
+      return
+    }
+
+    setMessages((current) =>
+      current.map((message) =>
+        message.id === messageId ? { ...message, content: nextContent, edited: true } : message,
+      ),
+    )
+  }
+
+  const deleteMessage = (messageId: string) => {
+    setMessages((current) => current.filter((message) => message.id !== messageId))
   }
 
   const addReaction = (messageId: string, emoji: string) => {
@@ -89,6 +123,10 @@ export function useNexusStore(initialServerId = 'nexus', initialChannelId = 'hom
     )
   }
 
+  useEffect(() => {
+    window.localStorage.setItem(MESSAGE_STORAGE_KEY, JSON.stringify(messages))
+  }, [messages])
+
   return {
     activeChannel,
     activeChannelId,
@@ -99,6 +137,8 @@ export function useNexusStore(initialServerId = 'nexus', initialChannelId = 'hom
     camera,
     channelMessages,
     deafened,
+    deleteMessage,
+    editMessage,
     events,
     membersVisible,
     messages,
