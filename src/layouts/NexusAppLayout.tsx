@@ -1,11 +1,11 @@
+import { useState } from 'react'
 import { Navigate, useLocation, useParams } from 'react-router-dom'
-import { Copy, Database, GitBranch, Lock, MessageCircle, Mic, Monitor, Pin, Search, Server, UserPlus, Users, X } from 'lucide-react'
+import { Copy, MessageCircle, Search, Server, UserPlus, Users, X } from 'lucide-react'
 import { ChannelSidebar } from '../components/ChannelSidebar'
 import { ChatHeader } from '../components/ChatHeader'
 import { ChatMessage } from '../components/ChatMessage'
 import { CreateChannelModal } from '../components/CreateChannelModal'
 import { CreateServerModal } from '../components/CreateServerModal'
-import { EmptyState } from '../components/EmptyState'
 import { MembersPanel } from '../components/MembersPanel'
 import { MessageComposer } from '../components/MessageComposer'
 import { ServerRail } from '../components/ServerRail'
@@ -18,7 +18,7 @@ import { clearSession } from '../utils/authSession'
 export function NexusAppLayout() {
   const location = useLocation()
   const { channelId, serverId } = useParams()
-  const store = useNexusStore(serverId ?? 'nexus', channelId ?? 'nexus-general')
+  const store = useNexusStore(serverId ?? '', channelId ?? '')
   const isFeaturePath = ['/friends', '/dm', '/settings'].some((path) => location.pathname.endsWith(path))
 
   if (serverId && !store.servers.some((server) => server.id === serverId)) {
@@ -27,43 +27,28 @@ export function NexusAppLayout() {
 
   const renderMain = () => {
     if (location.pathname.endsWith('/friends')) {
-      return <FriendsSurface users={store.users} />
+      return <FriendsSurface {...store} />
     }
 
     if (location.pathname.endsWith('/dm')) {
-      return <DirectMessagesSurface users={store.users} />
+      return <DirectMessagesSurface {...store} />
     }
 
     if (location.pathname.endsWith('/settings')) {
-      return <SettingsSurface users={store.users} />
+      return <SettingsSurface {...store} />
     }
 
-    if (!store.activeChannel || store.activeChannel.type === 'text' || store.activeChannel.type === 'forum') {
-      return (
-        <main className="chat-main">
-          <section className="pinned-card">
-            <div className="pinned-toolbar">
-              <div className="pinned-heading">
-                <Pin size={18} />
-                <strong>Закреплённое сообщение</strong>
-              </div>
-              <div className="pinned-actions">
-                <Users size={17} />
-                <Pin size={17} />
-                <Search size={17} />
-                <X size={17} />
-              </div>
-            </div>
-            <div className="pinned-message">
-              <span className="avatar avatar-online">AJ</span>
-              <p>
-                <b>Алекс Джонсон</b> <small>10.06.2026</small>
-                <br />
-                Добро пожаловать в Nexus Community! 🎉 Ознакомьтесь с правилами и не стесняйтесь задавать вопросы.
-              </p>
-            </div>
-          </section>
+    if (!store.activeServer || store.activeChannelId === 'home') {
+      return <OnboardingSurface {...store} />
+    }
 
+    if (store.activeChannel?.type === 'voice') {
+      return <VoiceRoom {...store} />
+    }
+
+    return (
+      <main className="chat-main">
+        {store.channelMessages.length ? (
           <section className="message-list">
             {store.channelMessages.map((message) => (
               <ChatMessage
@@ -73,22 +58,20 @@ export function NexusAppLayout() {
                 key={message.id}
                 message={message}
                 roles={store.roles}
-                users={store.users}
+                users={store.serverUsers.length ? store.serverUsers : store.users}
               />
             ))}
-            <p className="typing-indicator">••• Ной Уилсон печатает...</p>
           </section>
-
-          <MessageComposer channelName={store.activeChannel?.name ?? 'general'} sendMessage={store.sendMessage} />
-        </main>
-      )
-    }
-
-    if (store.activeChannel.type === 'voice') {
-      return <VoiceRoom {...store} />
-    }
-
-    return <EmptyState title="Календарь событий" description="Здесь появятся встречи, релизы и планы сообщества." />
+        ) : (
+          <section className="real-empty-state">
+            <span><MessageCircle size={34} /></span>
+            <h2>Сообщений пока нет</h2>
+            <p>Напишите первое сообщение в этом канале. Здесь будут только реальные сообщения из localStorage.</p>
+          </section>
+        )}
+        <MessageComposer channelName={store.activeChannel?.name ?? 'general'} sendMessage={store.sendMessage} />
+      </main>
+    )
   }
 
   return (
@@ -99,80 +82,87 @@ export function NexusAppLayout() {
         <ChatHeader {...store} />
         <div className="workspace-body">
           {renderMain()}
-          {store.membersVisible && !isFeaturePath ? <MembersPanel roles={store.roles} setActiveModal={store.setActiveModal} users={store.users} /> : null}
+          {store.activeServer && store.membersVisible && !isFeaturePath ? <MembersPanel {...store} /> : null}
         </div>
       </section>
 
-      {store.activeModal === 'createServer' ? <CreateServerModal setActiveModal={store.setActiveModal} /> : null}
-      {store.activeModal === 'createChannel' ? <CreateChannelModal setActiveModal={store.setActiveModal} /> : null}
+      {store.activeModal === 'createServer' ? <CreateServerModal {...store} /> : null}
+      {store.activeModal === 'createChannel' ? <CreateChannelModal {...store} /> : null}
+      {store.activeModal === 'joinServer' ? <JoinServerModal {...store} /> : null}
       {store.activeModal === 'settings' ? <SettingsModal setActiveModal={store.setActiveModal} users={store.users} /> : null}
       {store.activeModal === 'profile' ? <UserProfileModal setActiveModal={store.setActiveModal} users={store.users} /> : null}
+      {store.toast ? <div className="nexus-toast">{store.toast}</div> : null}
     </div>
   )
 }
 
-function FriendsSurface({ users }: Pick<ReturnType<typeof useNexusStore>, 'users'>) {
-  const online = users.filter((user) => user.status !== 'offline').slice(2, 7)
+function OnboardingSurface({ currentUser, setActiveModal, servers, showSoon }: ReturnType<typeof useNexusStore>) {
+  const hasServers = servers.length > 0
 
   return (
-    <main className="feature-surface friends-surface">
-      <section className="feature-card-panel">
-        <header><h2>Друзья</h2><span><Search size={15} /><X size={15} /></span></header>
-        <div className="friends-layout">
-          <nav>
-            {['Друзья', 'Все друзья', 'Запросы', 'В сети', 'Рекомендации'].map((item, index) => (
-              <button className={index === 1 ? 'is-active' : ''} key={item} type="button">{item}</button>
-            ))}
-          </nav>
-          <div>
-            <h3>Запросы в друзья</h3>
-            {users.slice(8, 10).map((user) => (
-              <article key={user.id}>
-                <span className={`avatar avatar-${user.status}`}>{user.avatar}</span>
-                <div><strong>{user.displayName}</strong><small>{user.activity}</small></div>
-                <button type="button">Принять</button>
-                <button type="button">Отклонить</button>
-              </article>
-            ))}
-            <h3>В сети — {online.length}</h3>
-            {online.map((user) => (
-              <article key={user.id}><span className={`avatar avatar-${user.status}`}>{user.avatar}</span><div><strong>{user.displayName}</strong><small>{user.activity}</small></div></article>
-            ))}
-          </div>
+    <main className="feature-surface onboarding-surface">
+      <section className="real-welcome-panel">
+        <span className="nexus-icon">N</span>
+        <p className="eyebrow">Nexus Desktop</p>
+        <h1>Добро пожаловать в Nexus{currentUser ? `, ${currentUser.displayName}` : ''}</h1>
+        <p>{hasServers ? 'Выберите сервер слева или создайте новое пространство.' : 'У вас пока нет серверов. Создайте свое первое сообщество или присоединитесь по приглашению.'}</p>
+        <div className="onboarding-actions">
+          <button type="button" onClick={() => setActiveModal('createServer')}><Server size={18} />Создать свой сервер</button>
+          <button type="button" onClick={() => setActiveModal('joinServer')}><Copy size={18} />Присоединиться по приглашению</button>
+          <button type="button" onClick={() => showSoon()}><MessageCircle size={18} />Перейти в личные сообщения</button>
         </div>
+        {hasServers ? <small>Invite для выбранного сервера можно создать в панели участников.</small> : null}
       </section>
-      <ArchitecturePanel />
     </main>
   )
 }
 
-function DirectMessagesSurface({ users }: Pick<ReturnType<typeof useNexusStore>, 'users'>) {
-  const selected = users[8]
-  const contacts = users.slice(8, 13)
+function FriendsSurface(store: ReturnType<typeof useNexusStore>) {
+  const [query, setQuery] = useState('')
+  const results = store.searchUsers(query)
+  const incoming = store.friendRequests.filter((request) => request.toUserId === store.currentUser?.id && request.status === 'pending')
 
   return (
-    <main className="feature-surface dm-surface">
-      <section className="feature-card-panel">
-        <header><h2>Личные сообщения</h2><span><Search size={15} /><X size={15} /></span></header>
-        <div className="dm-layout">
-          <aside>
-            <label><Search size={14} /><input placeholder="Найти или начать беседу" /></label>
-            {contacts.map((user, index) => (
-              <button className={index === 0 ? 'is-active' : ''} key={user.id} type="button">
-                <span className={`avatar avatar-${user.status}`}>{user.avatar}</span>
-                <span><strong>{user.displayName}</strong><small>{user.activity}</small></span>
-              </button>
-            ))}
-          </aside>
+    <main className="feature-surface friends-surface">
+      <section className="feature-card-panel real-friends-panel">
+        <header><h2>Друзья</h2><span><Search size={15} /></span></header>
+        <div className="friends-real-layout">
           <section>
-            <header><span className={`avatar avatar-${selected.status}`}>{selected.avatar}</span><strong>{selected.displayName}</strong></header>
-            {['Привет! Как дела?', 'Всё отлично! А у тебя?', 'Тоже хорошо, спасибо! 👍', 'Хочешь зайти в голосовой канал позже?', 'Давай! Буду через 5 минут.'].map((text, index) => (
-              <article className={index % 2 ? 'is-own' : ''} key={text}>
-                <span className={`avatar avatar-${index % 2 ? 'online' : selected.status}`}>{index % 2 ? 'EB' : selected.avatar}</span>
-                <p>{text}<small>{15 + index}:{index * 8 + 12}</small></p>
+            <h3>Найти пользователя</h3>
+            <label className="member-search"><Search size={15} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="username или email" /></label>
+            {results.map((user) => (
+              <article key={user.id}>
+                <span className={`avatar avatar-${user.status}`}>{user.avatar}</span>
+                <div><strong>{user.displayName}</strong><small>@{user.username}</small></div>
+                <button type="button" onClick={() => store.sendFriendRequest(user.id)}><UserPlus size={15} />Добавить</button>
               </article>
             ))}
-            <div className="dm-composer">Написать @{selected.displayName}</div>
+          </section>
+          <section>
+            <h3>Запросы</h3>
+            {incoming.map((request) => {
+              const user = store.users.find((item) => item.id === request.fromUserId)
+              return user ? (
+                <article key={request.id}>
+                  <span className={`avatar avatar-${user.status}`}>{user.avatar}</span>
+                  <div><strong>{user.displayName}</strong><small>@{user.username}</small></div>
+                  <button type="button" onClick={() => store.acceptFriendRequest(request.id)}>Принять</button>
+                  <button type="button" onClick={() => store.declineFriendRequest(request.id)}>Отклонить</button>
+                </article>
+              ) : null
+            })}
+            {!incoming.length ? <p>Новых запросов нет.</p> : null}
+          </section>
+          <section>
+            <h3>Мои друзья</h3>
+            {store.friends.map((user) => (
+              <article key={user.id}>
+                <span className={`avatar avatar-${user.status}`}>{user.avatar}</span>
+                <div><strong>{user.displayName}</strong><small>@{user.username}</small></div>
+                <button type="button" onClick={() => store.startDirectChat(user.id)}>DM</button>
+              </article>
+            ))}
+            {!store.friends.length ? <p>Список друзей пока пуст.</p> : null}
           </section>
         </div>
       </section>
@@ -180,8 +170,60 @@ function DirectMessagesSurface({ users }: Pick<ReturnType<typeof useNexusStore>,
   )
 }
 
-function SettingsSurface({ users }: Pick<ReturnType<typeof useNexusStore>, 'users'>) {
-  const user = users[0]
+function DirectMessagesSurface(store: ReturnType<typeof useNexusStore>) {
+  const [draft, setDraft] = useState('')
+  const activeChat = store.directChats.find((chat) => chat.id === store.settings.activeDmId) ?? store.directChats[0]
+  const friend = activeChat?.participantIds.map((id) => store.users.find((user) => user.id === id)).find((user) => user && user.id !== store.currentUser?.id)
+
+  const submit = () => {
+    if (activeChat) {
+      store.sendDirectMessage(activeChat.id, draft)
+      setDraft('')
+    }
+  }
+
+  return (
+    <main className="feature-surface dm-surface">
+      <section className="feature-card-panel real-dm-panel">
+        <header><h2>Личные сообщения</h2><span><Users size={15} /></span></header>
+        <div className="dm-real-layout">
+          <aside>
+            {store.friends.map((user) => (
+              <button key={user.id} type="button" onClick={() => store.startDirectChat(user.id)}>
+                <span className={`avatar avatar-${user.status}`}>{user.avatar}</span>
+                <span><strong>{user.displayName}</strong><small>@{user.username}</small></span>
+              </button>
+            ))}
+            {!store.friends.length ? <p>Добавьте друга, чтобы начать DM.</p> : null}
+          </aside>
+          <section>
+            {activeChat && friend ? (
+              <>
+                <header><span className={`avatar avatar-${friend.status}`}>{friend.avatar}</span><strong>{friend.displayName}</strong></header>
+                <div className="dm-message-list">
+                  {activeChat.messages.map((message) => {
+                    const author = store.users.find((user) => user.id === message.authorId)
+                    return <article className={message.authorId === store.currentUser?.id ? 'is-own' : ''} key={message.id}><p>{message.content}<small>{message.timestamp}</small></p><span className={`avatar avatar-${author?.status ?? 'online'}`}>{author?.avatar ?? 'N'}</span></article>
+                  })}
+                </div>
+                <div className="dm-composer real-dm-composer">
+                  <input value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => {
+                    if (event.key === 'Enter') submit()
+                  }} placeholder={`Написать @${friend.username}`} />
+                  <button type="button" onClick={submit}>Отправить</button>
+                </div>
+              </>
+            ) : (
+              <div className="real-empty-state"><h2>Выберите диалог</h2><p>DM создаются только с реальными друзьями из localStorage.</p></div>
+            )}
+          </section>
+        </div>
+      </section>
+    </main>
+  )
+}
+
+function SettingsSurface({ currentUser }: ReturnType<typeof useNexusStore>) {
   const logout = () => {
     clearSession()
     window.location.hash = '#/login'
@@ -191,78 +233,39 @@ function SettingsSurface({ users }: Pick<ReturnType<typeof useNexusStore>, 'user
     <main className="feature-surface settings-route-surface">
       <section className="feature-card-panel settings-page-panel">
         <aside>
-          {['Мой аккаунт', 'Профиль', 'Внешний вид', 'Уведомления', 'Голос и видео', 'Приватность', 'Горячие клавиши', 'О программе'].map((item, index) => (
+          {['Мой аккаунт', 'Профиль', 'Внешний вид', 'Уведомления', 'Голос и видео', 'Приватность'].map((item, index) => (
             <button className={index === 1 ? 'is-active' : ''} key={item} type="button">{item}</button>
           ))}
         </aside>
         <section>
           <h2>Настройки пользователя</h2>
-          <div className="settings-profile"><span className="avatar avatar-online">{user.avatar}</span><div><strong>{user.displayName}#4231</strong><button type="button">Изменить аватар</button></div></div>
-          <label>Отображаемое имя<input defaultValue={user.displayName} /></label>
-          <label>Имя пользователя<input defaultValue={user.username} /></label>
-          <label>О себе<textarea defaultValue="Люблю технологии и общение 🚀" /></label>
-          <label>Статус<input defaultValue="Онлайн" /></label>
-          <button className="modal-primary" type="button">Сохранить изменения</button>
+          <div className="settings-profile"><span className="avatar avatar-online">{currentUser?.avatar ?? 'N'}</span><div><strong>{currentUser?.displayName ?? 'Nexus User'}</strong><button type="button">Изменить аватар</button></div></div>
+          <label>Отображаемое имя<input defaultValue={currentUser?.displayName ?? ''} /></label>
+          <label>Username<input defaultValue={currentUser?.username ?? ''} /></label>
+          <label>Email<input defaultValue={currentUser?.email ?? ''} /></label>
           <button className="logout-button" type="button" onClick={logout}>Выйти из аккаунта</button>
         </section>
       </section>
-      <InvitePanel />
     </main>
   )
 }
 
-function InvitePanel() {
-  return (
-    <section className="feature-card-panel invite-panel">
-      <h2>Приглашение на сервер</h2>
-      <div>
-        <p>Пригласить друзей в<br /><strong>Nexus Community</strong></p>
-        <label><input readOnly value="https://nexus.gg/abc123" /><button type="button"><Copy size={15} />Копировать</button></label>
-        <small>Этот код-приглашение никогда не истечёт.</small>
-        <div className="invite-actions">
-          <button type="button">Поделиться ссылкой</button>
-          <button type="button"><UserPlus size={15} />Пригласить друзей</button>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function ArchitecturePanel() {
-  const flow = [
-    ['Аутентификация', Lock],
-    ['Пользователи', Users],
-    ['Серверы', Server],
-    ['Каналы', GitBranch],
-    ['Сообщения', MessageCircle],
-    ['Голосовые комнаты', Mic],
-  ] as const
+function JoinServerModal({ joinServerByInvite, setActiveModal }: ReturnType<typeof useNexusStore>) {
+  const [code, setCode] = useState('')
 
   return (
-    <section className="architecture-panel">
-      <h2>Логика и архитектура Nexus</h2>
-      <div className="architecture-flow">
-        {flow.map(([label, Icon], index) => (
-          <article key={label as string}>
-            <span>{index + 1}.</span>
-            <strong>{label as string}</strong>
-            <Icon size={18} />
-          </article>
-        ))}
-      </div>
-      <div className="realtime-layer">WebSocket Real-time Layer</div>
-      <div className="tech-stack">
-        {[
-          ['Frontend', ['Electron', 'React', 'TypeScript', 'Zustand']],
-          ['Backend', ['Node.js', 'Express', 'Socket.IO', 'JWT']],
-          ['Database', ['Prisma ORM', 'SQLite / PostgreSQL', 'Миграции']],
-          ['Realtime', ['Socket.IO', 'Presence', 'Typing']],
-        ].map(([title, items]) => (
-          <section key={title as string}><h3>{title as string}</h3>{(items as string[]).map((item) => <small key={item}>{item}</small>)}</section>
-        ))}
-        <Monitor size={18} />
-        <Database size={18} />
-      </div>
-    </section>
+    <div className="modal-backdrop">
+      <section className="nexus-modal">
+        <header>
+          <h2>Присоединиться к серверу</h2>
+          <button type="button" onClick={() => setActiveModal(null)}><X size={18} /></button>
+        </header>
+        <label>
+          Invite-код
+          <input value={code} onChange={(event) => setCode(event.target.value)} placeholder="ABC12345" />
+        </label>
+        <button className="modal-primary" type="button" onClick={() => joinServerByInvite(code)}>Войти на сервер</button>
+      </section>
+    </div>
   )
 }

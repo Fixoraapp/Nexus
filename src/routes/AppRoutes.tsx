@@ -39,13 +39,16 @@ export function AppRoutes() {
         </Route>
         <Route element={<ProtectedApp />}>
           <Route path="/app" element={<NexusAppLayout />} />
+          <Route path="/app/onboarding" element={<NexusAppLayout />} />
           <Route path="/app/server/:serverId/channel/:channelId" element={<NexusAppLayout />} />
           <Route path="/app/dm" element={<NexusAppLayout />} />
           <Route path="/app/friends" element={<NexusAppLayout />} />
           <Route path="/app/settings" element={<NexusAppLayout />} />
         </Route>
-        <Route element={<AuthLayout />}>
-          <Route path="/setup" element={<NexusSetupWizard />} />
+        <Route element={<ProtectedApp />}>
+          <Route element={<AuthLayout />}>
+            <Route path="/setup" element={<NexusSetupWizard />} />
+          </Route>
         </Route>
         <Route element={<AuthLayout />}>
           <Route element={<PublicOnly />}>

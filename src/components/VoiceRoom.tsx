@@ -3,52 +3,61 @@ import type { NexusStore } from '../store/nexusStore'
 
 type Props = Pick<
   NexusStore,
+  | 'activeChannel'
   | 'camera'
+  | 'currentUser'
   | 'deafened'
+  | 'joinVoiceChannel'
+  | 'leaveVoiceChannel'
   | 'muted'
   | 'screenSharing'
+  | 'serverUsers'
   | 'setCamera'
   | 'setDeafened'
   | 'setMuted'
   | 'setScreenSharing'
-  | 'users'
   | 'voiceParticipants'
 >
 
 export function VoiceRoom(props: Props) {
-  const { camera, deafened, muted, screenSharing, setCamera, setDeafened, setMuted, setScreenSharing, users, voiceParticipants } = props
-  const speakers = voiceParticipants.filter((participant) => participant.speaking)
-  const listeners = users.filter((user) => ['u3', 'u4', 'u6', 'u7'].includes(user.id))
+  const { activeChannel, camera, currentUser, deafened, joinVoiceChannel, leaveVoiceChannel, muted, screenSharing, serverUsers, setCamera, setDeafened, setMuted, setScreenSharing, voiceParticipants } = props
+  const participants = voiceParticipants
+    .map((participant) => {
+      const user = serverUsers.find((item) => item.id === participant.userId)
+      return user ? { participant, user } : null
+    })
+    .filter((item): item is NonNullable<typeof item> => Boolean(item))
+  const isJoined = Boolean(currentUser && voiceParticipants.some((participant) => participant.userId === currentUser.id))
 
   return (
     <main className="voice-room voice-room-redesign">
       <section className="voice-panel">
         <header>
           <div>
-            <strong>Gaming</strong>
-            <small>Установлено соединение</small>
+            <strong>{activeChannel?.name ?? 'Voice'}</strong>
+            <small>{isJoined ? 'Соединение установлено' : 'Вы не в голосовом канале'}</small>
           </div>
+          {!isJoined ? <button className="modal-primary" type="button" onClick={() => joinVoiceChannel()}>Войти</button> : null}
         </header>
         <div className="voice-layout">
           <aside>
-            <h3>Говорят — {speakers.length}</h3>
-            {speakers.map((participant) => {
-              const user = users.find((item) => item.id === participant.userId) ?? users[0]
-              return <span key={user.id}><i className={`avatar avatar-${user.status}`}>{user.avatar}</i>{user.displayName}</span>
-            })}
-            <h3>Слушают — {listeners.length}</h3>
-            {listeners.map((user) => <span key={user.id}><i className={`avatar avatar-${user.status}`}>{user.avatar}</i>{user.displayName}</span>)}
+            <h3>В канале - {participants.length}</h3>
+            {participants.map(({ participant, user }) => (
+              <span key={user.id}>
+                <i className={`avatar avatar-${user.status}`}>{user.avatar}</i>
+                {user.displayName}
+                {participant.muted ? <MicOff size={13} /> : null}
+              </span>
+            ))}
+            {!participants.length ? <small>Пока никого нет.</small> : null}
           </aside>
           <div className="speaker-stage">
-            {speakers.slice(0, 3).map((participant) => {
-              const user = users.find((item) => item.id === participant.userId) ?? users[0]
-              return (
-                <article key={user.id}>
-                  <span className={`avatar avatar-${user.status}`}>{user.avatar}</span>
-                  <strong>{user.displayName}</strong>
-                </article>
-              )
-            })}
+            {participants.map(({ user }) => (
+              <article key={user.id}>
+                <span className={`avatar avatar-${user.status}`}>{user.avatar}</span>
+                <strong>{user.displayName}</strong>
+              </article>
+            ))}
           </div>
         </div>
         <div className="voice-controls">
@@ -56,7 +65,7 @@ export function VoiceRoom(props: Props) {
           <button className={deafened ? 'is-on' : ''} type="button" onClick={() => setDeafened(!deafened)}><Volume2 size={17} />Deafen</button>
           <button className={camera ? 'is-on' : ''} type="button" onClick={() => setCamera(!camera)}><Video size={17} />Видео</button>
           <button className={screenSharing ? 'is-on' : ''} type="button" onClick={() => setScreenSharing(!screenSharing)}><MonitorUp size={17} />Экран</button>
-          <button className="leave-button" type="button"><Phone size={17} /></button>
+          <button className="leave-button" type="button" onClick={leaveVoiceChannel}><Phone size={17} /></button>
         </div>
       </section>
     </main>

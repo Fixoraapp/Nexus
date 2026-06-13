@@ -35,6 +35,8 @@ export type Server = {
   onlineCount: number
   ownerId: string
   channels: Channel[]
+  color?: string
+  privacy?: 'public' | 'private'
 }
 
 export type Reaction = {

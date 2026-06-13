@@ -2,7 +2,8 @@ import { Camera, CheckCircle2 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { createSession, getSession } from '../utils/authSession'
+import { authService } from '../services/authService'
+import { getSession } from '../utils/authSession'
 
 const statuses = ['Онлайн', 'Не беспокоить', 'Отошёл', 'Невидимый']
 
@@ -13,8 +14,12 @@ export function NexusSetupWizard() {
 
   const finishSetup = (formData: FormData) => {
     const displayName = String(formData.get('displayName') || session?.displayName || 'Итан Браун')
-    const nextSession = createSession(session?.username ?? displayName, displayName)
-    navigate(nextSession.homePath, { replace: true })
+    authService.updateProfile({
+      bio: String(formData.get('bio') || ''),
+      displayName,
+      status: status === statuses[1] ? 'dnd' : status === statuses[2] ? 'idle' : status === statuses[3] ? 'offline' : 'online',
+    })
+    navigate('/app', { replace: true })
   }
 
   return (

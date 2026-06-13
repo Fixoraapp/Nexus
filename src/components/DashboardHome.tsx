@@ -9,6 +9,10 @@ type Props = NexusStore
 export function DashboardHome(store: Props) {
   const { activeServer, events, messages, users } = store
 
+  if (!activeServer) {
+    return null
+  }
+
   return (
     <main className="dashboard-home">
       <section className="welcome-card">

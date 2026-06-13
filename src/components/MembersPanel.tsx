@@ -1,14 +1,14 @@
 import { Search, UserPlus } from 'lucide-react'
 import type { NexusStore } from '../store/nexusStore'
 
-type Props = Pick<NexusStore, 'roles' | 'setActiveModal' | 'users'>
+type Props = Pick<NexusStore, 'createInvite' | 'roles' | 'serverUsers' | 'setActiveModal'>
 
-export function MembersPanel({ roles, setActiveModal, users }: Props) {
-  const grouped = roles
+export function MembersPanel({ createInvite, roles, serverUsers, setActiveModal }: Props) {
+  const grouped = [...roles]
     .sort((a, b) => b.priority - a.priority)
     .map((role) => ({
       role,
-      users: users.filter((user) => user.roleIds.includes(role.id)),
+      users: serverUsers.filter((user) => user.roleIds.includes(role.id)),
     }))
     .filter((group) => group.users.length)
 
@@ -18,24 +18,27 @@ export function MembersPanel({ roles, setActiveModal, users }: Props) {
         <Search size={17} />
         <input placeholder="Найти участника" />
       </label>
-      {grouped.map(({ role, users: groupUsers }) => (
+      {grouped.map(({ role, users }) => (
         <section className="member-group" key={role.id}>
-          <h3 style={{ color: role.color }}>{role.name.toUpperCase()} — {groupUsers.length}</h3>
-          {groupUsers.map((user) => (
+          <h3 style={{ color: role.color }}>{role.name.toUpperCase()} - {users.length}</h3>
+          {users.map((user) => (
             <button className="member-row" key={user.id} type="button" onClick={() => setActiveModal('profile')}>
               <span className={`avatar avatar-${user.status}`}>{user.avatar}</span>
               <span>
-                <strong>{user.displayName}{role.id === 'owner' ? ' 👑' : ''}</strong>
+                <strong>{user.displayName}{role.id === 'owner' ? ' crown' : ''}</strong>
                 <small>{user.activity}</small>
               </span>
             </button>
           ))}
         </section>
       ))}
-      <p className="hidden-members">+3 скрытых участника</p>
-      <button className="invite-member" type="button" onClick={() => setActiveModal('profile')}>
+      {!grouped.length ? <p className="hidden-members">Участников пока нет</p> : null}
+      <button className="invite-member" type="button" onClick={() => {
+        const code = createInvite()
+        window.navigator.clipboard?.writeText(code)
+      }}>
         <UserPlus size={18} />
-        Пригласить участника
+        Создать invite
       </button>
     </aside>
   )

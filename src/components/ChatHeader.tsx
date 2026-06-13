@@ -15,8 +15,8 @@ export function ChatHeader({ activeChannel, membersVisible, notifications, searc
       <div className="chat-title">
         {isVoice ? <Volume2 size={24} /> : <Hash size={24} />}
         <div>
-          <h1>{activeChannel?.name ?? 'general'}</h1>
-          <p>{activeChannel?.description ?? 'Общий чат для всех участников сервера.'}</p>
+          <h1>{activeChannel?.name ?? 'Nexus'}</h1>
+          <p>{activeChannel?.description ?? 'Ваше рабочее пространство без demo-данных.'}</p>
         </div>
       </div>
       <div className="chat-tools">
@@ -24,7 +24,7 @@ export function ChatHeader({ activeChannel, membersVisible, notifications, searc
           <Search size={17} />
           <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Поиск" />
         </label>
-        <button className="icon-button" type="button" title="Закреплённые">
+        <button className="icon-button" type="button" title="Закрепленные">
           <Pin size={19} />
         </button>
         <NotificationBell notifications={notifications} />

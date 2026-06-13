@@ -1,7 +1,7 @@
 import { Bell, CreditCard, LogOut, Mic, Palette, Shield, User, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import type { NexusStore } from '../store/nexusStore'
-import { clearSession } from '../utils/authSession'
+import { authService } from '../services/authService'
 
 type Props = Pick<NexusStore, 'setActiveModal' | 'users'>
 
@@ -16,10 +16,10 @@ const sections = [
 
 export function SettingsModal({ setActiveModal, users }: Props) {
   const navigate = useNavigate()
-  const user = users[0]
+  const user = users[0] ?? { avatar: 'N', displayName: 'Nexus User', email: '', username: 'user' }
 
   const logout = () => {
-    clearSession()
+    authService.logout()
     setActiveModal(null)
     navigate('/login', { replace: true })
   }
@@ -44,15 +44,15 @@ export function SettingsModal({ setActiveModal, users }: Props) {
           <div className="settings-profile">
             <span className="avatar avatar-online">{user.avatar}</span>
             <div>
-              <strong>{user.displayName}#4231</strong>
-              <small>Онлайн</small>
+              <strong>{user.displayName}</strong>
+              <small>@{user.username}</small>
               <button type="button">Изменить аватар</button>
             </div>
           </div>
           <label>Отображаемое имя<input defaultValue={user.displayName} /></label>
-          <label>Имя пользователя<input defaultValue={user.username} /></label>
-          <label>О себе<textarea defaultValue="Люблю технологии и общение 🚀" /></label>
-          <label>Статус<select defaultValue="online"><option value="online">Онлайн</option><option value="idle">Отошёл</option><option value="dnd">Не беспокоить</option></select></label>
+          <label>Username<input defaultValue={user.username} /></label>
+          <label>Email<input defaultValue={user.email} /></label>
+          <label>О себе<textarea defaultValue="" /></label>
           <button className="modal-primary" type="button" onClick={() => setActiveModal(null)}>Сохранить изменения</button>
         </main>
       </section>

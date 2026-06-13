@@ -7,24 +7,27 @@ type Props = Pick<
   NexusStore,
   | 'activeChannelId'
   | 'activeServer'
+  | 'currentUser'
   | 'deafened'
   | 'muted'
   | 'selectChannel'
+  | 'serverUsers'
   | 'setActiveModal'
   | 'setDeafened'
   | 'setMuted'
   | 'users'
+  | 'voiceParticipants'
 >
 
 const categoryLabels: Record<ChannelCategory, string> = {
+  events: 'СОБЫТИЯ',
   information: 'ИНФОРМАЦИЯ',
+  private: 'ПРИВАТНЫЕ',
   text: 'ТЕКСТОВЫЕ КАНАЛЫ',
   voice: 'ГОЛОСОВЫЕ КАНАЛЫ',
-  events: 'СОБЫТИЯ',
-  private: 'ПРИВАТНЫЕ',
 }
 
-const categoryOrder: ChannelCategory[] = ['information', 'text', 'voice']
+const categoryOrder: ChannelCategory[] = ['information', 'text', 'voice', 'events', 'private']
 
 function ChannelIcon({ isPrivate, type }: { isPrivate: boolean; type: ChannelType }) {
   if (isPrivate) return <Lock size={17} />
@@ -33,13 +36,33 @@ function ChannelIcon({ isPrivate, type }: { isPrivate: boolean; type: ChannelTyp
 }
 
 export function ChannelSidebar(props: Props) {
-  const { activeChannelId, activeServer, selectChannel, setActiveModal } = props
-  const voiceUsers = props.users.filter((user) => ['u9', 'u5', 'u4'].includes(user.id))
+  const { activeChannelId, activeServer, selectChannel, setActiveModal, voiceParticipants } = props
+  const voiceUsers = props.serverUsers.filter((user) => voiceParticipants.some((participant) => participant.userId === user.id))
+
+  if (!activeServer) {
+    return (
+      <aside className="channel-sidebar">
+        <header className="server-header">
+          <button type="button"><span>Nexus</span><ChevronDown size={16} /></button>
+        </header>
+        <button className="browse-channels is-active" type="button" onClick={() => selectChannel('home')}>
+          <Home size={18} />
+          Главная
+        </button>
+        <div className="channel-empty">
+          <strong>Нет серверов</strong>
+          <small>Создайте первое сообщество или присоединитесь по invite-коду.</small>
+          <button type="button" onClick={() => setActiveModal('createServer')}>Создать сервер</button>
+        </div>
+        <UserProfileBar {...props} />
+      </aside>
+    )
+  }
 
   return (
     <aside className="channel-sidebar">
       <header className="server-header">
-        <button type="button" onClick={() => selectChannel(`${activeServer.id}-general`)}>
+        <button type="button" onClick={() => selectChannel(activeServer.channels[0]?.id ?? 'home')}>
           <span>{activeServer.name}</span>
           <ChevronDown size={16} />
         </button>
@@ -52,7 +75,10 @@ export function ChannelSidebar(props: Props) {
 
       <nav className="channel-groups" aria-label="Каналы">
         {categoryOrder.map((category) => {
-          const channels = activeServer.channels.filter((channel) => channel.category === category)
+          const groupedChannels = activeServer.channels.filter((channel) => channel.category === category)
+          if (!groupedChannels.length) {
+            return null
+          }
 
           return (
             <section className="channel-group" key={category}>
@@ -62,7 +88,7 @@ export function ChannelSidebar(props: Props) {
                   <Plus size={15} />
                 </button>
               </div>
-              {channels.map((channel) => (
+              {groupedChannels.map((channel) => (
                 <div key={channel.id}>
                   <button
                     className={`channel-row ${channel.id === activeChannelId ? 'is-active' : ''}`}
@@ -72,9 +98,8 @@ export function ChannelSidebar(props: Props) {
                     <ChannelIcon isPrivate={channel.isPrivate} type={channel.type} />
                     <span>{channel.name}</span>
                     {channel.unreadCount ? <strong>{channel.unreadCount}</strong> : null}
-                    {channel.name === 'Gaming' ? <em>LIVE</em> : null}
                   </button>
-                  {channel.name === 'Gaming' ? (
+                  {channel.type === 'voice' && voiceUsers.length ? (
                     <div className="voice-mini-list">
                       {voiceUsers.map((user) => (
                         <span key={user.id}><i className={`avatar avatar-${user.status}`}>{user.avatar}</i>{user.displayName}</span>
@@ -86,6 +111,13 @@ export function ChannelSidebar(props: Props) {
             </section>
           )
         })}
+        {!activeServer.channels.length ? (
+          <div className="channel-empty">
+            <strong>Нет каналов</strong>
+            <small>Создайте первый канал для этого сервера.</small>
+            <button type="button" onClick={() => setActiveModal('createChannel')}>Создать канал</button>
+          </div>
+        ) : null}
       </nav>
 
       <UserProfileBar {...props} />

@@ -1,18 +1,23 @@
 import { Headphones, Mic, MicOff, Settings } from 'lucide-react'
 import type { NexusStore } from '../store/nexusStore'
 
-type Props = Pick<NexusStore, 'deafened' | 'muted' | 'setActiveModal' | 'setDeafened' | 'setMuted' | 'users'>
+type Props = Pick<NexusStore, 'currentUser' | 'deafened' | 'muted' | 'setActiveModal' | 'setDeafened' | 'setMuted'>
 
-export function UserProfileBar({ deafened, muted, setActiveModal, setDeafened, setMuted, users }: Props) {
-  const user = users[0]
+export function UserProfileBar({ currentUser, deafened, muted, setActiveModal, setDeafened, setMuted }: Props) {
+  const user = currentUser ?? {
+    avatar: 'N',
+    displayName: 'Nexus User',
+    status: 'online',
+    username: 'user',
+  }
 
   return (
     <div className="user-profile-bar">
       <button className="profile-mini" type="button" onClick={() => setActiveModal('profile')}>
-        <span className="avatar avatar-online">{user.avatar}</span>
+        <span className={`avatar avatar-${user.status}`}>{user.avatar}</span>
         <span>
           <strong>{user.displayName}</strong>
-          <small>Онлайн</small>
+          <small>@{user.username}</small>
         </span>
       </button>
       <div className="profile-actions">
