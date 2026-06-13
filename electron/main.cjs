@@ -6,46 +6,104 @@ const isDev = Boolean(process.env.VITE_DEV_SERVER_URL)
 
 let mainWindow
 let splashWindow
+let updateCheckTimer
+
+const updateState = {
+  status: 'idle',
+  message: '',
+  progress: 0,
+  ready: false,
+  version: app.getVersion(),
+}
 
 function sendUpdateStatus(status, message) {
+  updateState.status = status
+  updateState.message = message
+
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send('update-status', { status, message })
   }
 }
 
 function sendUpdateProgress(percent) {
+  updateState.progress = percent
+
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send('update-progress', percent)
   }
 }
 
 function sendUpdateReady() {
+  updateState.ready = true
+  updateState.progress = 100
+
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send('update-ready')
   }
 }
 
+function sendCachedUpdateState() {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    return
+  }
+
+  mainWindow.webContents.send('update-state', updateState)
+
+  if (updateState.message) {
+    mainWindow.webContents.send('update-status', {
+      status: updateState.status,
+      message: updateState.message,
+    })
+  }
+
+  if (updateState.progress > 0) {
+    mainWindow.webContents.send('update-progress', updateState.progress)
+  }
+
+  if (updateState.ready) {
+    mainWindow.webContents.send('update-ready')
+  }
+}
+
+function checkForUpdatesSilently() {
+  if (!app.isPackaged) {
+    return Promise.resolve(null)
+  }
+
+  return autoUpdater.checkForUpdates().catch((error) => {
+    sendUpdateStatus('error', error.message || 'Не удалось проверить обновления Nexus.')
+    return null
+  })
+}
+
 function setupAutoUpdater() {
+  autoUpdater.autoDownload = true
+  autoUpdater.autoInstallOnAppQuit = false
+
   autoUpdater.on('checking-for-update', () => {
+    updateState.ready = false
     sendUpdateStatus('checking-for-update', 'Проверяем обновления Nexus...')
   })
 
   autoUpdater.on('update-available', () => {
-    sendUpdateStatus('update-available', 'Доступно новое обновление Nexus. Скачиваем...')
+    updateState.ready = false
+    sendUpdateProgress(0)
+    sendUpdateStatus('update-available', 'Доступно новое обновление Nexus. Скачиваем в фоне...')
   })
 
   autoUpdater.on('update-not-available', () => {
+    updateState.ready = false
     sendUpdateStatus('update-not-available', 'У вас установлена последняя версия Nexus.')
   })
 
   autoUpdater.on('download-progress', (progress) => {
     const percent = Math.round(progress.percent || 0)
-    sendUpdateStatus('download-progress', 'Nexus обновляется...')
+    sendUpdateStatus('download-progress', 'Nexus скачивает обновление...')
     sendUpdateProgress(percent)
   })
 
   autoUpdater.on('update-downloaded', () => {
-    sendUpdateStatus('update-downloaded', 'Обновление Nexus готово.')
+    sendUpdateStatus('update-downloaded', 'Обновление Nexus готово к установке.')
     sendUpdateProgress(100)
     sendUpdateReady()
   })
@@ -55,11 +113,19 @@ function setupAutoUpdater() {
   })
 
   const installDownloadedUpdate = () => {
+    if (!updateState.ready) {
+      sendUpdateStatus('error', 'Обновление еще не готово к установке.')
+      return false
+    }
+
     autoUpdater.quitAndInstall(false, true)
+    return true
   }
 
   ipcMain.on('install-update', installDownloadedUpdate)
   ipcMain.handle('update:install-downloaded', installDownloadedUpdate)
+  ipcMain.handle('update:get-state', () => updateState)
+  ipcMain.handle('update:check-now', checkForUpdatesSilently)
 }
 
 function setupWindowControls() {
@@ -219,15 +285,21 @@ function createMainWindow() {
     mainWindow.loadFile(path.join(__dirname, '..', 'dist', 'index.html'))
   }
 
+  mainWindow.webContents.on('did-finish-load', () => {
+    sendCachedUpdateState()
+  })
+
   mainWindow.once('ready-to-show', () => {
     setTimeout(() => {
       if (splashWindow && !splashWindow.isDestroyed()) {
         splashWindow.close()
       }
+
       mainWindow.show()
 
       if (app.isPackaged) {
-        autoUpdater.checkForUpdatesAndNotify()
+        checkForUpdatesSilently()
+        updateCheckTimer = setInterval(checkForUpdatesSilently, 30 * 60 * 1000)
       }
     }, 700)
   })
@@ -249,6 +321,11 @@ app.whenReady().then(() => {
 })
 
 app.on('window-all-closed', () => {
+  if (updateCheckTimer) {
+    clearInterval(updateCheckTimer)
+    updateCheckTimer = undefined
+  }
+
   if (process.platform !== 'darwin') {
     app.quit()
   }

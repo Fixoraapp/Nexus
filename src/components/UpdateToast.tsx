@@ -8,19 +8,42 @@ type UpdateStatus = {
   message: string
 }
 
-const appVersion = '1.0.4'
-
 export function UpdateToast() {
   const [status, setStatus] = useState<UpdateStatus | null>(null)
   const [progress, setProgress] = useState(0)
   const [isReady, setIsReady] = useState(false)
   const [showInstaller, setShowInstaller] = useState(false)
   const [dismissed, setDismissed] = useState(false)
+  const [version, setVersion] = useState('')
 
   useEffect(() => {
     if (!window.nexusUpdater) {
       return
     }
+
+    const applyState = (payload: {
+      message: string
+      progress: number
+      ready: boolean
+      status: string
+      version: string
+    }) => {
+      setVersion(payload.version)
+      setProgress(Math.max(0, Math.min(100, Math.round(payload.progress))))
+      setIsReady(payload.ready)
+
+      if (payload.message && payload.status !== 'idle') {
+        setStatus({
+          message: payload.message,
+          status: payload.status,
+        })
+      }
+    }
+
+    window.nexusUpdater.getState().then(applyState).catch(() => undefined)
+    window.nexusUpdater.checkNow().catch(() => undefined)
+
+    const removeStateListener = window.nexusUpdater.on('update-state', applyState)
 
     const removeStatusListener = window.nexusUpdater.on('update-status', (payload) => {
       setStatus(payload)
@@ -48,6 +71,7 @@ export function UpdateToast() {
     })
 
     return () => {
+      removeStateListener()
       removeStatusListener()
       removeProgressListener()
       removeReadyListener()
@@ -120,7 +144,7 @@ export function UpdateToast() {
 
       <AnimatePresence>
         {showInstaller ? (
-          <NexusUpdateInstaller version={appVersion} onInstall={installDownloadedUpdate} />
+          <NexusUpdateInstaller version={version || 'latest'} onInstall={installDownloadedUpdate} />
         ) : null}
       </AnimatePresence>
     </>

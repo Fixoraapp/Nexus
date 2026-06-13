@@ -4,6 +4,7 @@ const validUpdateChannels = new Set([
   'update-status',
   'update-progress',
   'update-ready',
+  'update-state',
 ])
 
 contextBridge.exposeInMainWorld('nexusUpdater', {
@@ -24,6 +25,12 @@ contextBridge.exposeInMainWorld('nexusUpdater', {
   },
   installDownloadedUpdate() {
     return ipcRenderer.invoke('update:install-downloaded')
+  },
+  getState() {
+    return ipcRenderer.invoke('update:get-state')
+  },
+  checkNow() {
+    return ipcRenderer.invoke('update:check-now')
   },
 })
 

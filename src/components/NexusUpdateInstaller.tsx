@@ -9,9 +9,8 @@ type Props = {
 
 const steps = [
   'Подготовка обновления Nexus...',
-  'Загрузка модулей...',
-  'Проверка файлов...',
-  'Установка обновления...',
+  'Проверка загруженных файлов...',
+  'Подготовка перезапуска...',
   'Финализация...',
   'Обновление готово!',
 ]
@@ -22,7 +21,7 @@ export function NexusUpdateInstaller({ version, onInstall }: Props) {
 
   useEffect(() => {
     const startedAt = Date.now()
-    const duration = 3300
+    const duration = 1800
 
     const timer = window.setInterval(() => {
       const elapsed = Date.now() - startedAt
@@ -40,7 +39,7 @@ export function NexusUpdateInstaller({ version, onInstall }: Props) {
 
   const activeStep = useMemo(() => {
     if (progress >= 100) {
-      return steps[5]
+      return steps[4]
     }
 
     const index = Math.min(Math.floor((progress / 100) * (steps.length - 1)), steps.length - 2)
@@ -85,7 +84,7 @@ export function NexusUpdateInstaller({ version, onInstall }: Props) {
         <div className="installer-body">
           <div className="installer-product-row">
             <h2 id="nexus-update-title">NEXUS CORE</h2>
-            <span className="installer-version">v{version} · stable</span>
+            <span className="installer-version">v{version} stable</span>
           </div>
 
           <div className="installer-status-box">
@@ -106,20 +105,20 @@ export function NexusUpdateInstaller({ version, onInstall }: Props) {
 
           <dl className="installer-details">
             <div>
-              <dt>Путь:</dt>
-              <dd>C:\Program Files\Nexus\</dd>
+              <dt>Режим:</dt>
+              <dd>Установка скачанного обновления</dd>
             </div>
             <div>
               <dt>Компоненты:</dt>
               <dd>Core, UI, Electron Runtime, Auto Update Bridge</dd>
             </div>
             <div>
-              <dt>Распаковка:</dt>
-              <dd>nexus_update.pkg → files</dd>
+              <dt>Действие:</dt>
+              <dd>Nexus закроется и сразу откроется уже обновленным</dd>
             </div>
             <div>
-              <dt>Подпись:</dt>
-              <dd>Nexus Technologies Inc. (SHA-256)</dd>
+              <dt>Источник:</dt>
+              <dd>GitHub Releases</dd>
             </div>
           </dl>
         </div>
