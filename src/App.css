@@ -4728,6 +4728,189 @@
   color: white;
 }
 
+.workspace-body > main {
+  min-width: 0;
+  min-height: 0;
+}
+
+.text-channel-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.text-channel-view .channel-view-header,
+.voice-channel-view .channel-view-header {
+  flex: 0 0 58px;
+}
+
+.text-channel-view .pro-message-list,
+.text-channel-view .text-channel-empty {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.text-channel-view .text-channel-empty {
+  align-content: center;
+  justify-items: start;
+  padding: 24px;
+}
+
+.text-channel-view .message-composer.pro-message-composer {
+  position: relative;
+  bottom: auto;
+  flex: 0 0 auto;
+  grid-template-columns: 42px minmax(0, 1fr) 42px 42px 42px 58px;
+  width: calc(100% - 40px);
+  margin: 0 20px 20px;
+  padding: 10px;
+  border-radius: 14px;
+  background: rgba(17, 27, 49, 0.92);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.22);
+}
+
+.text-channel-view .message-composer textarea {
+  min-height: 40px;
+  max-height: 140px;
+  padding-top: 10px;
+}
+
+.text-channel-view .message-composer .send-button {
+  width: 58px;
+}
+
+.voice-channel-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% -10%, rgba(109, 93, 255, 0.18), transparent 38%),
+    linear-gradient(180deg, rgba(10, 14, 24, 0.92), rgba(7, 10, 18, 0.98));
+}
+
+.voice-stage {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: 22px;
+  overflow: auto;
+}
+
+.voice-stage .voice-join-panel {
+  align-self: center;
+  justify-self: center;
+}
+
+.voice-stage .voice-participants-grid {
+  width: min(100%, 1180px);
+  min-height: 0;
+  padding: 0;
+}
+
+.voice-stage .voice-participants-grid.count-1 {
+  grid-template-columns: minmax(320px, 520px);
+  place-content: center;
+}
+
+.voice-stage .voice-participants-grid.count-2 {
+  grid-template-columns: repeat(2, minmax(280px, 440px));
+  justify-content: center;
+}
+
+.voice-stage .voice-participant-card {
+  min-height: 320px;
+}
+
+.voice-stage .voice-participants-grid.count-1 .voice-participant-card {
+  width: 520px;
+  max-width: 100%;
+  min-height: 320px;
+}
+
+.voice-stage .voice-participant-card.is-speaking::before {
+  position: absolute;
+  inset: 14px;
+  border: 1px solid rgba(53, 208, 127, 0.55);
+  border-radius: 16px;
+  animation: speaking-ring 1.4s ease-in-out infinite;
+  content: "";
+  pointer-events: none;
+}
+
+@keyframes speaking-ring {
+  0%, 100% {
+    opacity: 0.35;
+    transform: scale(0.99);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.015);
+  }
+}
+
+.voice-channel-view .voice-call-controls {
+  position: relative;
+  bottom: auto;
+  flex: 0 0 auto;
+  align-self: center;
+  margin: 0 0 22px;
+}
+
+.voice-status-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 30px;
+  gap: 8px;
+  align-items: center;
+  min-height: 50px;
+  padding: 8px 10px;
+  border: 1px solid rgba(53, 208, 127, 0.24);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 12% 20%, rgba(53, 208, 127, 0.18), transparent 40%),
+    rgba(17, 27, 49, 0.82);
+}
+
+.voice-status-card span {
+  display: grid;
+  min-width: 0;
+}
+
+.voice-status-card strong,
+.voice-status-card small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.voice-status-card strong {
+  color: #35d07f;
+  font-size: 12px;
+}
+
+.voice-status-card small {
+  color: #8d99b8;
+  font-size: 11px;
+}
+
+.voice-status-card button {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 1px solid rgba(255, 93, 115, 0.32);
+  border-radius: 10px;
+  background: rgba(255, 93, 115, 0.12);
+  color: #ff9aad;
+  cursor: pointer;
+}
+
 .feature-card-panel > header {
   display: flex;
   align-items: center;

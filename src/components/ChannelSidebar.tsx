@@ -7,6 +7,7 @@ import { UserProfileBar } from './UserProfileBar'
 
 type Props = Pick<
   NexusStore,
+  | 'activeChannel'
   | 'activeChannelId'
   | 'activeModal'
   | 'activeServer'
@@ -17,6 +18,7 @@ type Props = Pick<
   | 'currentActivity'
   | 'currentUser'
   | 'deafened'
+  | 'leaveVoiceChannel'
   | 'logout'
   | 'markServerAsRead'
   | 'muteServer'
@@ -82,7 +84,7 @@ function canCreateChannel(currentUser: Props['currentUser'], activeServer: Props
 export function ChannelSidebar(props: Props) {
   const { activeChannelId, activeServer, openCreateChannelModal, selectChannel, setActiveModal, voiceParticipants } = props
   const [serverMenuOpen, setServerMenuOpen] = useState(false)
-  const voiceUsers = props.serverUsers.filter((user) => voiceParticipants.some((participant) => participant.userId === user.id))
+  const voiceUsers = (channelId: string) => props.serverUsers.filter((user) => voiceParticipants.some((participant) => participant.userId === user.id && participant.channelId === channelId))
   const canCreate = canCreateChannel(props.currentUser, activeServer, props.serverUsers)
 
   if (!activeServer) {
@@ -149,9 +151,9 @@ export function ChannelSidebar(props: Props) {
                     <span>{channel.name}</span>
                     {channel.unreadCount ? <strong>{channel.unreadCount}</strong> : null}
                   </button>
-                  {channel.type === 'voice' && voiceUsers.length ? (
+                  {channel.type === 'voice' && voiceUsers(channel.id).length ? (
                     <div className="voice-mini-list">
-                      {voiceUsers.map((user) => (
+                      {voiceUsers(channel.id).map((user) => (
                         <span key={user.id}><i className={`avatar avatar-${user.status}`}>{user.avatar}</i>{user.displayName}</span>
                       ))}
                     </div>

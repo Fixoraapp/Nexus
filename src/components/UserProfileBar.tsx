@@ -1,17 +1,20 @@
-import { Headphones, Mic, MicOff, MonitorUp, Settings, Sparkles } from 'lucide-react'
+import { Headphones, Mic, MicOff, MonitorUp, Phone, Settings, Sparkles } from 'lucide-react'
 import type { NexusStore } from '../store/nexusStore'
 import { ActivityCard } from './ActivityCard'
 import { UserProfilePopout } from './UserProfilePopout'
 
 type Props = Pick<
   NexusStore,
+  | 'activeChannel'
   | 'activeModal'
+  | 'activeServer'
   | 'clearActivity'
   | 'closeUserProfilePopout'
   | 'copyUserId'
   | 'currentActivity'
   | 'currentUser'
   | 'deafened'
+  | 'leaveVoiceChannel'
   | 'logout'
   | 'muted'
   | 'openActivityModal'
@@ -23,6 +26,7 @@ type Props = Pick<
   | 'toggleMute'
   | 'toggleStreaming'
   | 'updateUserStatus'
+  | 'voiceParticipants'
 >
 
 const statusLabels = {
@@ -34,13 +38,16 @@ const statusLabels = {
 
 export function UserProfileBar(props: Props) {
   const {
+    activeChannel,
     activeModal,
+    activeServer,
     clearActivity,
     closeUserProfilePopout,
     copyUserId,
     currentActivity,
     currentUser,
     deafened,
+    leaveVoiceChannel,
     logout,
     muted,
     openActivityModal,
@@ -52,6 +59,7 @@ export function UserProfileBar(props: Props) {
     toggleMute,
     toggleStreaming,
     updateUserStatus,
+    voiceParticipants,
   } = props
   const user = currentUser ?? {
     avatar: 'N',
@@ -59,6 +67,8 @@ export function UserProfileBar(props: Props) {
     status: 'online' as const,
     username: 'user',
   }
+  const voiceSession = currentUser ? voiceParticipants.find((participant) => participant.userId === currentUser.id) : null
+  const voiceChannelName = activeChannel && voiceSession?.channelId === activeChannel.id ? activeChannel.name : activeServer?.channels.find((channel) => channel.id === voiceSession?.channelId)?.name
 
   return (
     <div className="user-control-panel">
@@ -76,7 +86,19 @@ export function UserProfileBar(props: Props) {
         />
       ) : null}
 
-      <ActivityCard activity={currentActivity} clearActivity={clearActivity} openActivityModal={openActivityModal} />
+      {voiceSession ? (
+        <div className="voice-status-card">
+          <span>
+            <strong>Голосовая связь подключена</strong>
+            <small>{voiceChannelName ? `${activeServer?.name ?? 'Nexus'} / ${voiceChannelName}` : activeServer?.name ?? 'Nexus'}</small>
+          </span>
+          <button type="button" onClick={leaveVoiceChannel} title="Отключиться">
+            <Phone size={15} />
+          </button>
+        </div>
+      ) : (
+        <ActivityCard activity={currentActivity} clearActivity={clearActivity} openActivityModal={openActivityModal} />
+      )}
 
       <div className="user-control-bar">
         <button className="user-identity" type="button" onClick={openUserProfilePopout}>

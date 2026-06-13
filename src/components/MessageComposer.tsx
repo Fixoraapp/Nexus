@@ -36,7 +36,7 @@ export function MessageComposer({ channelName, sendMessage }: Props) {
       <button type="button" title="Подарок"><Gift size={20} /></button>
       <button className="gif-button" type="button" title="GIF">GIF</button>
       <span className="composer-emoji-wrap">
-        <button type="button" onClick={() => setEmojiOpen((value) => !value)} title="Эмодзи"><Smile size={20} /></button>
+        <button type="button" onClick={() => setEmojiOpen((current) => !current)} title="Эмодзи"><Smile size={20} /></button>
         {emojiOpen ? <EmojiPicker onPick={(emoji) => setValue((current) => `${current}${emoji}`)} /> : null}
       </span>
       <button className="send-button" disabled={!canSend} type="button" onClick={submit} title="Отправить">
