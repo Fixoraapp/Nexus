@@ -1,6 +1,7 @@
 import { Apple, GitBranch, Shield, Volume2, Workflow } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { createSession } from '../utils/authSession'
 
 function NexusOrb() {
   return (
@@ -12,6 +13,18 @@ function NexusOrb() {
 }
 
 export function LoginPage() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const fromPath = typeof location.state === 'object' && location.state && 'from' in location.state
+    ? String(location.state.from)
+    : ''
+
+  const signIn = (formData: FormData) => {
+    const login = String(formData.get('login') || 'ethan')
+    const session = createSession(login, login.split('@')[0])
+    navigate(fromPath && fromPath !== '/login' ? fromPath : session.homePath, { replace: true })
+  }
+
   return (
     <section className="auth-stage">
       <motion.aside className="auth-showcase" initial={{ opacity: 0, x: -22 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.45 }}>
@@ -36,14 +49,14 @@ export function LoginPage() {
           <button type="button"><GitBranch size={18} />Продолжить с GitHub</button>
         </div>
         <div className="auth-divider"><span>или войдите с email</span></div>
-        <form className="auth-form">
-          <label>Email<input type="email" placeholder="email@example.com" /></label>
-          <label>Пароль<input type="password" placeholder="••••••••••••" /></label>
+        <form className="auth-form" action={signIn}>
+          <label>Email или имя пользователя<input name="login" type="text" placeholder="ethan, maya, ava, noah" /></label>
+          <label>Пароль<input name="password" type="password" placeholder="••••••••••••" /></label>
           <div className="auth-row">
             <label><input defaultChecked type="checkbox" /> Запомнить меня</label>
             <a href="#forgot">Забыли пароль?</a>
           </div>
-          <button type="button">Войти</button>
+          <button type="submit">Войти</button>
         </form>
         <p className="auth-switch">Нет аккаунта? <Link to="/register">Создать аккаунт</Link></p>
       </motion.section>

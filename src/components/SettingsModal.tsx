@@ -1,5 +1,7 @@
 import { Bell, CreditCard, LogOut, Mic, Palette, Shield, User, X } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import type { NexusStore } from '../store/nexusStore'
+import { clearSession } from '../utils/authSession'
 
 type Props = Pick<NexusStore, 'setActiveModal' | 'users'>
 
@@ -13,7 +15,14 @@ const sections = [
 ]
 
 export function SettingsModal({ setActiveModal, users }: Props) {
+  const navigate = useNavigate()
   const user = users[0]
+
+  const logout = () => {
+    clearSession()
+    setActiveModal(null)
+    navigate('/login', { replace: true })
+  }
 
   return (
     <div className="modal-backdrop">
@@ -25,7 +34,7 @@ export function SettingsModal({ setActiveModal, users }: Props) {
               {label}
             </button>
           ))}
-          <button className="logout-button" type="button"><LogOut size={16} />Выйти</button>
+          <button className="logout-button" type="button" onClick={logout}><LogOut size={16} />Выйти</button>
         </aside>
         <main>
           <header>

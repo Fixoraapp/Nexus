@@ -13,12 +13,13 @@ import { SettingsModal } from '../components/SettingsModal'
 import { UserProfileModal } from '../components/UserProfileModal'
 import { VoiceRoom } from '../components/VoiceRoom'
 import { useNexusStore } from '../store/nexusStore'
+import { clearSession } from '../utils/authSession'
 
 export function NexusAppLayout() {
   const location = useLocation()
   const { channelId, serverId } = useParams()
   const store = useNexusStore(serverId ?? 'nexus', channelId ?? 'nexus-general')
-  const isFeaturePath = ['/app/friends', '/app/dm', '/app/settings'].some((path) => location.pathname.endsWith(path.replace('/app', '')))
+  const isFeaturePath = ['/friends', '/dm', '/settings'].some((path) => location.pathname.endsWith(path))
 
   if (serverId && !store.servers.some((server) => server.id === serverId)) {
     return <Navigate to="/app" replace />
@@ -181,6 +182,10 @@ function DirectMessagesSurface({ users }: Pick<ReturnType<typeof useNexusStore>,
 
 function SettingsSurface({ users }: Pick<ReturnType<typeof useNexusStore>, 'users'>) {
   const user = users[0]
+  const logout = () => {
+    clearSession()
+    window.location.hash = '#/login'
+  }
 
   return (
     <main className="feature-surface settings-route-surface">
@@ -198,6 +203,7 @@ function SettingsSurface({ users }: Pick<ReturnType<typeof useNexusStore>, 'user
           <label>О себе<textarea defaultValue="Люблю технологии и общение 🚀" /></label>
           <label>Статус<input defaultValue="Онлайн" /></label>
           <button className="modal-primary" type="button">Сохранить изменения</button>
+          <button className="logout-button" type="button" onClick={logout}>Выйти из аккаунта</button>
         </section>
       </section>
       <InvitePanel />

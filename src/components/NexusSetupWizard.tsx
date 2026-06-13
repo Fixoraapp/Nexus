@@ -2,12 +2,20 @@ import { Camera, CheckCircle2 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { createSession, getSession } from '../utils/authSession'
 
 const statuses = ['Онлайн', 'Не беспокоить', 'Отошёл', 'Невидимый']
 
 export function NexusSetupWizard() {
   const navigate = useNavigate()
   const [status, setStatus] = useState(statuses[0])
+  const session = getSession()
+
+  const finishSetup = (formData: FormData) => {
+    const displayName = String(formData.get('displayName') || session?.displayName || 'Итан Браун')
+    const nextSession = createSession(session?.username ?? displayName, displayName)
+    navigate(nextSession.homePath, { replace: true })
+  }
 
   return (
     <main className="profile-setup-page">
@@ -22,9 +30,9 @@ export function NexusSetupWizard() {
           <button type="button" title="Загрузить аватар"><Camera size={20} /></button>
         </div>
 
-        <form className="profile-setup-form">
-          <label>Имя пользователя<input defaultValue="Итан Браун" /></label>
-          <label>О себе (необязательно)<input defaultValue="Люблю технологии и общение 🚀" /></label>
+        <form className="profile-setup-form" action={finishSetup}>
+          <label>Имя пользователя<input name="displayName" defaultValue={session?.displayName ?? 'Итан Браун'} /></label>
+          <label>О себе (необязательно)<input name="bio" defaultValue="Люблю технологии и общение 🚀" /></label>
           <fieldset>
             <legend>Выберите статус</legend>
             {statuses.map((item) => (
@@ -35,7 +43,7 @@ export function NexusSetupWizard() {
               </button>
             ))}
           </fieldset>
-          <button className="modal-primary" type="button" onClick={() => navigate('/app')}>Продолжить</button>
+          <button className="modal-primary" type="submit">Продолжить</button>
         </form>
       </motion.section>
     </main>

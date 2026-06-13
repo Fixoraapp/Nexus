@@ -1,8 +1,17 @@
 import { Apple, GitBranch } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { createSession } from '../utils/authSession'
 
 export function RegisterPage() {
+  const navigate = useNavigate()
+
+  const register = (formData: FormData) => {
+    const username = String(formData.get('username') || 'new-user')
+    createSession(username, username)
+    navigate('/setup', { replace: true })
+  }
+
   return (
     <section className="register-stage">
       <motion.section className="auth-card auth-panel register-panel" initial={{ opacity: 0, x: -22 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.45 }}>
@@ -10,14 +19,14 @@ export function RegisterPage() {
           <h1>Создать аккаунт<br />Nexus</h1>
           <p>Начните строить своё сообщество</p>
         </div>
-        <form className="auth-form">
-          <label>Имя пользователя<input type="text" placeholder="username" /></label>
-          <label>Email<input type="email" placeholder="email@example.com" /></label>
-          <label>Пароль<input type="password" placeholder="••••••••••••" /></label>
-          <label>Подтвердите пароль<input type="password" placeholder="••••••••••••" /></label>
+        <form className="auth-form" action={register}>
+          <label>Имя пользователя<input name="username" type="text" placeholder="username" /></label>
+          <label>Email<input name="email" type="email" placeholder="email@example.com" /></label>
+          <label>Пароль<input name="password" type="password" placeholder="••••••••••••" /></label>
+          <label>Подтвердите пароль<input name="confirmPassword" type="password" placeholder="••••••••••••" /></label>
           <div className="password-strength"><span /></div>
           <label className="terms-row"><input defaultChecked type="checkbox" /> Я принимаю условия использования и политику конфиденциальности</label>
-          <button type="button">Создать аккаунт</button>
+          <button type="submit">Создать аккаунт</button>
         </form>
         <div className="auth-divider"><span>или продолжите с</span></div>
         <div className="oauth-row">

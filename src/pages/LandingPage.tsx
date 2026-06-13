@@ -1,6 +1,7 @@
 import { MessageSquarePlus, Monitor, ShieldCheck, Volume2 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
+import { getSession } from '../utils/authSession'
 
 const features = [
   { icon: MessageSquarePlus, title: 'Создавайте серверы', text: 'Объединяйте людей в своих сообществах' },
@@ -10,6 +11,8 @@ const features = [
 ]
 
 export function LandingPage() {
+  const session = getSession()
+
   return (
     <main className="welcome-page">
       <motion.section className="welcome-panel" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }}>
@@ -24,7 +27,7 @@ export function LandingPage() {
             </article>
           ))}
         </div>
-        <Link className="primary-link" to="/app">Начать общение</Link>
+        <Link className="primary-link" to={session?.homePath ?? '/login'}>Начать общение</Link>
       </motion.section>
     </main>
   )
