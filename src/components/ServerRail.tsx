@@ -1,9 +1,9 @@
 import { Compass, Plus, Settings } from 'lucide-react'
 import type { NexusStore } from '../store/nexusStore'
 
-type Props = Pick<NexusStore, 'activeServerId' | 'selectServer' | 'servers' | 'setActiveModal'>
+type Props = Pick<NexusStore, 'activeServerId' | 'openAddServerModal' | 'selectServer' | 'servers' | 'setActiveModal' | 'showSoon'>
 
-export function ServerRail({ activeServerId, selectServer, servers, setActiveModal }: Props) {
+export function ServerRail({ activeServerId, openAddServerModal, selectServer, servers, setActiveModal, showSoon }: Props) {
   return (
     <aside className="server-rail" aria-label="Серверы">
       <button className={`rail-home ${!activeServerId ? 'is-active' : ''}`} type="button" onClick={() => selectServer('')} title="Nexus Home">
@@ -23,10 +23,10 @@ export function ServerRail({ activeServerId, selectServer, servers, setActiveMod
           </button>
         ))}
       </div>
-      <button className="rail-action" type="button" onClick={() => setActiveModal('createServer')} title="Добавить сервер">
+      <button className="rail-action" type="button" onClick={openAddServerModal} title="Добавить сервер">
         <Plus size={22} />
       </button>
-      <button className="rail-action" type="button" onClick={() => setActiveModal('joinServer')} title="Присоединиться по invite">
+      <button className="rail-action" type="button" onClick={() => showSoon('Обзор сообществ скоро будет доступен')} title="Обзор сообществ">
         <Compass size={20} />
       </button>
       <button className="rail-action rail-bottom" type="button" onClick={() => setActiveModal('settings')} title="Настройки">

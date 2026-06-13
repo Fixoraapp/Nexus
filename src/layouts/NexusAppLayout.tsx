@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { Navigate, useLocation, useParams } from 'react-router-dom'
-import { Copy, MessageCircle, Search, Server, UserPlus, Users, X } from 'lucide-react'
+import { Copy, MessageCircle, Search, Server, UserPlus, Users } from 'lucide-react'
+import { AddServerModal } from '../components/AddServerModal'
+import { ActivityModal } from '../components/ActivityModal'
 import { ChannelSidebar } from '../components/ChannelSidebar'
 import { ChatHeader } from '../components/ChatHeader'
 import { ChatMessage } from '../components/ChatMessage'
 import { CreateChannelModal } from '../components/CreateChannelModal'
-import { CreateServerModal } from '../components/CreateServerModal'
+import { JoinServerModal } from '../components/JoinServerModal'
 import { MembersPanel } from '../components/MembersPanel'
 import { MessageComposer } from '../components/MessageComposer'
 import { ServerRail } from '../components/ServerRail'
@@ -26,25 +28,11 @@ export function NexusAppLayout() {
   }
 
   const renderMain = () => {
-    if (location.pathname.endsWith('/friends')) {
-      return <FriendsSurface {...store} />
-    }
-
-    if (location.pathname.endsWith('/dm')) {
-      return <DirectMessagesSurface {...store} />
-    }
-
-    if (location.pathname.endsWith('/settings')) {
-      return <SettingsSurface {...store} />
-    }
-
-    if (!store.activeServer || store.activeChannelId === 'home') {
-      return <OnboardingSurface {...store} />
-    }
-
-    if (store.activeChannel?.type === 'voice') {
-      return <VoiceRoom {...store} />
-    }
+    if (location.pathname.endsWith('/friends')) return <FriendsSurface {...store} />
+    if (location.pathname.endsWith('/dm')) return <DirectMessagesSurface {...store} />
+    if (location.pathname.endsWith('/settings')) return <SettingsSurface {...store} />
+    if (!store.activeServer || store.activeChannelId === 'home') return <OnboardingSurface {...store} />
+    if (store.activeChannel?.type === 'voice') return <VoiceRoom {...store} />
 
     return (
       <main className="chat-main">
@@ -66,7 +54,7 @@ export function NexusAppLayout() {
           <section className="real-empty-state">
             <span><MessageCircle size={34} /></span>
             <h2>Сообщений пока нет</h2>
-            <p>Напишите первое сообщение в этом канале. Здесь будут только реальные сообщения из localStorage.</p>
+            <p>Напишите первое сообщение в этом канале. Здесь будут только реальные сообщения.</p>
           </section>
         )}
         <MessageComposer channelName={store.activeChannel?.name ?? 'general'} sendMessage={store.sendMessage} />
@@ -86,9 +74,18 @@ export function NexusAppLayout() {
         </div>
       </section>
 
-      {store.activeModal === 'createServer' ? <CreateServerModal {...store} /> : null}
+      {store.activeModal === 'addServer' ? <AddServerModal {...store} /> : null}
+      {store.activeModal === 'activity' ? <ActivityModal {...store} /> : null}
       {store.activeModal === 'createChannel' ? <CreateChannelModal {...store} /> : null}
-      {store.activeModal === 'joinServer' ? <JoinServerModal {...store} /> : null}
+      {store.activeModal === 'joinServer' ? (
+        <div className="add-server-overlay">
+          <JoinServerModal
+            joinServerByInvite={store.joinServerByInvite}
+            onBack={store.openAddServerModal}
+            onClose={() => store.setActiveModal(null)}
+          />
+        </div>
+      ) : null}
       {store.activeModal === 'settings' ? <SettingsModal setActiveModal={store.setActiveModal} users={store.users} /> : null}
       {store.activeModal === 'profile' ? <UserProfileModal setActiveModal={store.setActiveModal} users={store.users} /> : null}
       {store.toast ? <div className="nexus-toast">{store.toast}</div> : null}
@@ -96,7 +93,7 @@ export function NexusAppLayout() {
   )
 }
 
-function OnboardingSurface({ currentUser, setActiveModal, servers, showSoon }: ReturnType<typeof useNexusStore>) {
+function OnboardingSurface({ currentUser, openAddServerModal, servers, setActiveModal, showSoon }: ReturnType<typeof useNexusStore>) {
   const hasServers = servers.length > 0
 
   return (
@@ -105,9 +102,9 @@ function OnboardingSurface({ currentUser, setActiveModal, servers, showSoon }: R
         <span className="nexus-icon">N</span>
         <p className="eyebrow">Nexus Desktop</p>
         <h1>Добро пожаловать в Nexus{currentUser ? `, ${currentUser.displayName}` : ''}</h1>
-        <p>{hasServers ? 'Выберите сервер слева или создайте новое пространство.' : 'У вас пока нет серверов. Создайте свое первое сообщество или присоединитесь по приглашению.'}</p>
+        <p>{hasServers ? 'Выберите сервер слева или создайте новое пространство.' : 'У вас пока нет серверов. Создайте первое сообщество или присоединитесь по приглашению.'}</p>
         <div className="onboarding-actions">
-          <button type="button" onClick={() => setActiveModal('createServer')}><Server size={18} />Создать свой сервер</button>
+          <button type="button" onClick={openAddServerModal}><Server size={18} />Создать свой сервер</button>
           <button type="button" onClick={() => setActiveModal('joinServer')}><Copy size={18} />Присоединиться по приглашению</button>
           <button type="button" onClick={() => showSoon()}><MessageCircle size={18} />Перейти в личные сообщения</button>
         </div>
@@ -214,7 +211,7 @@ function DirectMessagesSurface(store: ReturnType<typeof useNexusStore>) {
                 </div>
               </>
             ) : (
-              <div className="real-empty-state"><h2>Выберите диалог</h2><p>DM создаются только с реальными друзьями из localStorage.</p></div>
+              <div className="real-empty-state"><h2>Выберите диалог</h2><p>DM создаются только с реальными друзьями.</p></div>
             )}
           </section>
         </div>
@@ -247,25 +244,5 @@ function SettingsSurface({ currentUser }: ReturnType<typeof useNexusStore>) {
         </section>
       </section>
     </main>
-  )
-}
-
-function JoinServerModal({ joinServerByInvite, setActiveModal }: ReturnType<typeof useNexusStore>) {
-  const [code, setCode] = useState('')
-
-  return (
-    <div className="modal-backdrop">
-      <section className="nexus-modal">
-        <header>
-          <h2>Присоединиться к серверу</h2>
-          <button type="button" onClick={() => setActiveModal(null)}><X size={18} /></button>
-        </header>
-        <label>
-          Invite-код
-          <input value={code} onChange={(event) => setCode(event.target.value)} placeholder="ABC12345" />
-        </label>
-        <button className="modal-primary" type="button" onClick={() => joinServerByInvite(code)}>Войти на сервер</button>
-      </section>
-    </div>
   )
 }

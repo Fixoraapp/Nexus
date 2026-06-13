@@ -28,8 +28,8 @@ export function getHomePath() {
   return '/app'
 }
 
-export function createSession(username: string, displayName = username) {
-  const session = authService.updateProfile({
+export async function createSession(username: string, displayName = username) {
+  const session = await authService.updateProfile({
     displayName: displayName.trim() || username,
     username: username.trim().toLowerCase(),
   })

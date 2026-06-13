@@ -7,14 +7,20 @@ type Props = Pick<
   NexusStore,
   | 'activeChannelId'
   | 'activeServer'
+  | 'clearActivity'
+  | 'currentActivity'
   | 'currentUser'
   | 'deafened'
   | 'muted'
+  | 'screenSharing'
   | 'selectChannel'
   | 'serverUsers'
   | 'setActiveModal'
   | 'setDeafened'
   | 'setMuted'
+  | 'toggleDeafen'
+  | 'toggleMute'
+  | 'toggleStreaming'
   | 'users'
   | 'voiceParticipants'
 >
@@ -52,7 +58,7 @@ export function ChannelSidebar(props: Props) {
         <div className="channel-empty">
           <strong>Нет серверов</strong>
           <small>Создайте первое сообщество или присоединитесь по invite-коду.</small>
-          <button type="button" onClick={() => setActiveModal('createServer')}>Создать сервер</button>
+          <button type="button" onClick={() => setActiveModal('addServer')}>Создать сервер</button>
         </div>
         <UserProfileBar {...props} />
       </aside>

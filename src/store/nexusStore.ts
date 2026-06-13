@@ -9,9 +9,11 @@ import {
   voiceParticipants as demoVoiceParticipants,
 } from '../data/mockData'
 import { authService } from '../services/authService'
+import { activityService } from '../services/activityService'
+import type { NexusActivity } from '../services/activityService'
 import type { Channel, ChannelCategory, ChannelType, Message, NexusNotification, Server, User, VoiceParticipant } from '../types'
 
-type ModalName = 'createServer' | 'createChannel' | 'settings' | 'profile' | 'joinServer' | null
+type ModalName = 'activity' | 'addServer' | 'createChannel' | 'settings' | 'profile' | 'joinServer' | null
 type ServerMember = { roleId: string; serverId: string; userId: string }
 type FriendRequest = { fromUserId: string; id: string; status: 'pending' | 'accepted' | 'declined'; toUserId: string }
 type Friendship = { id: string; userIds: [string, string] }
@@ -19,6 +21,15 @@ type DirectMessage = { authorId: string; content: string; id: string; timestamp:
 type DirectChat = { id: string; messages: DirectMessage[]; participantIds: string[] }
 type Invite = { code: string; createdAt: string; serverId: string }
 type LocalSettings = { activeDmId?: string; onboardingComplete: boolean }
+
+export type CreateServerInput = {
+  color: string
+  description: string
+  icon: string
+  name: string
+  privacy: 'public' | 'private'
+  template?: string
+}
 
 const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true'
 
@@ -34,12 +45,11 @@ const storageKeys = {
   servers: 'nexus.servers',
   settings: 'nexus.settings',
   users: 'nexus.users',
+  voiceParticipants: 'nexus.voiceParticipants',
 } as const
 
 function readStorage<T>(key: string, fallback: T): T {
-  if (typeof window === 'undefined') {
-    return fallback
-  }
+  if (typeof window === 'undefined') return fallback
 
   try {
     const stored = window.localStorage.getItem(key)
@@ -73,10 +83,7 @@ function formatTime() {
 
 function userFromAuth(): User | null {
   const session = authService.getCurrentUser()
-
-  if (!session) {
-    return null
-  }
+  if (!session) return null
 
   return {
     activity: 'В сети',
@@ -88,10 +95,6 @@ function userFromAuth(): User | null {
     status: session.currentUser.status,
     username: session.currentUser.username,
   }
-}
-
-function uniqueUsers(users: User[]) {
-  return Array.from(new Map(users.map((user) => [user.id, user])).values())
 }
 
 function normalizeUser(user: Partial<User> & { id: string }): User {
@@ -109,7 +112,11 @@ function normalizeUser(user: Partial<User> & { id: string }): User {
   }
 }
 
-function createBaseChannels(serverId: string): Channel[] {
+function uniqueUsers(users: User[]) {
+  return Array.from(new Map(users.map((user) => [user.id, user])).values())
+}
+
+function createDefaultChannels(serverId: string): Channel[] {
   return [
     {
       category: 'information',
@@ -117,6 +124,24 @@ function createBaseChannels(serverId: string): Channel[] {
       id: `${serverId}-welcome`,
       isPrivate: false,
       name: 'welcome',
+      serverId,
+      type: 'text',
+    },
+    {
+      category: 'information',
+      description: 'Новости и важные объявления сервера.',
+      id: `${serverId}-announcements`,
+      isPrivate: false,
+      name: 'announcements',
+      serverId,
+      type: 'text',
+    },
+    {
+      category: 'information',
+      description: 'Правила сообщества.',
+      id: `${serverId}-rules`,
+      isPrivate: false,
+      name: 'rules',
       serverId,
       type: 'text',
     },
@@ -151,6 +176,10 @@ function demoMembers() {
   )
 }
 
+function parseInviteCode(value: string) {
+  return value.trim().split('/').filter(Boolean).at(-1)?.replace(/^#/, '').trim() ?? ''
+}
+
 const emptySettings: LocalSettings = { onboardingComplete: false }
 
 export function useNexusStore(initialServerId = '', initialChannelId = '') {
@@ -164,14 +193,11 @@ export function useNexusStore(initialServerId = '', initialChannelId = '') {
   const [servers, setServers] = useState<Server[]>(() => {
     const storedServers = readStorage<Server[]>(storageKeys.servers, DEMO_MODE ? demoServers : [])
     const storedChannels = readStorage<Channel[]>(storageKeys.channels, DEMO_MODE ? demoServers.flatMap((server) => server.channels) : [])
-    return storedServers.map((server) => ({
-      ...server,
-      channels: storedChannels.filter((channel) => channel.serverId === server.id),
-    }))
+    return storedServers.map((server) => ({ ...server, channels: storedChannels.filter((channel) => channel.serverId === server.id) }))
   })
   const [serverMembers, setServerMembers] = useState<ServerMember[]>(() => readStorage<ServerMember[]>(storageKeys.serverMembers, DEMO_MODE ? demoMembers() : []))
   const [messages, setMessages] = useState<Message[]>(() => readStorage<Message[]>(storageKeys.messages, DEMO_MODE ? demoMessages : []))
-  const [voiceParticipants, setVoiceParticipants] = useState<VoiceParticipant[]>(() => readStorage<VoiceParticipant[]>('nexus.voiceParticipants', DEMO_MODE ? demoVoiceParticipants : []))
+  const [voiceParticipants, setVoiceParticipants] = useState<VoiceParticipant[]>(() => readStorage<VoiceParticipant[]>(storageKeys.voiceParticipants, DEMO_MODE ? demoVoiceParticipants : []))
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>(() => readStorage<FriendRequest[]>(storageKeys.friendRequests, []))
   const [friendships, setFriendships] = useState<Friendship[]>(() => readStorage<Friendship[]>(storageKeys.friendships, []))
   const [directChats, setDirectChats] = useState<DirectChat[]>(() => readStorage<DirectChat[]>(storageKeys.directChats, []))
@@ -185,43 +211,27 @@ export function useNexusStore(initialServerId = '', initialChannelId = '') {
   const [deafened, setDeafened] = useState(false)
   const [camera, setCamera] = useState(false)
   const [screenSharing, setScreenSharing] = useState(false)
+  const [currentActivity, setCurrentActivity] = useState<NexusActivity | null>(() => activityService.getCurrentActivity())
   const [search, setSearch] = useState('')
   const [toast, setToast] = useState('')
 
   const currentUser = authUser ?? users[0] ?? null
 
   const activeServer = useMemo(() => {
-    if (!activeServerId) {
-      return null
-    }
-
-    const server = servers.find((item) => item.id === activeServerId) ?? servers[0] ?? null
-
-    if (!server) {
-      return null
-    }
-
-    return {
-      ...server,
-      channels: channels.filter((channel) => channel.serverId === server.id),
-    }
+    if (!activeServerId) return null
+    const server = servers.find((item) => item.id === activeServerId) ?? null
+    return server ? { ...server, channels: channels.filter((channel) => channel.serverId === server.id) } : null
   }, [activeServerId, channels, servers])
 
   const activeChannel = useMemo<Channel | null>(() => {
-    if (!activeServer || activeChannelId === 'home') {
-      return null
-    }
-
+    if (!activeServer || activeChannelId === 'home') return null
     return activeServer.channels.find((channel) => channel.id === activeChannelId) ?? activeServer.channels[0] ?? null
   }, [activeChannelId, activeServer])
 
   const serverUsers = useMemo(() => {
-    if (!activeServer) {
-      return currentUser ? [currentUser] : []
-    }
-
-    const members = serverMembers.filter((member) => member.serverId === activeServer.id)
-    return members
+    if (!activeServer) return currentUser ? [currentUser] : []
+    return serverMembers
+      .filter((member) => member.serverId === activeServer.id)
       .map((member) => {
         const user = users.find((item) => item.id === member.userId)
         return user ? { ...user, roleIds: [member.roleId] } : null
@@ -230,10 +240,7 @@ export function useNexusStore(initialServerId = '', initialChannelId = '') {
   }, [activeServer, currentUser, serverMembers, users])
 
   const channelMessages = useMemo(() => {
-    if (!activeChannel || !['text', 'forum'].includes(activeChannel.type)) {
-      return []
-    }
-
+    if (!activeChannel || !['text', 'forum'].includes(activeChannel.type)) return []
     const normalizedSearch = search.trim().toLowerCase()
     const list = messages.filter((message) => message.channelId === activeChannel.id)
     return normalizedSearch ? list.filter((message) => message.content.toLowerCase().includes(normalizedSearch)) : list
@@ -245,6 +252,15 @@ export function useNexusStore(initialServerId = '', initialChannelId = '') {
     .map((friendship) => users.find((user) => currentUser && friendship.userIds.includes(user.id) && user.id !== currentUser.id))
     .filter((user): user is User => Boolean(user)), [currentUser, friendships, users])
 
+  const showToast = (message: string) => {
+    setToast(message)
+    window.setTimeout(() => setToast(''), 2600)
+  }
+
+  const showSoon = (message = 'Скоро будет доступно') => showToast(message)
+  const openAddServerModal = () => setActiveModal('addServer')
+  const closeAddServerModal = () => setActiveModal(null)
+
   const selectServer = (serverId: string) => {
     const serverChannels = channels.filter((channel) => channel.serverId === serverId)
     setActiveServerId(serverId)
@@ -255,22 +271,15 @@ export function useNexusStore(initialServerId = '', initialChannelId = '') {
     setActiveChannelId(channelId)
   }
 
-  const showSoon = (message = 'Скоро будет доступно') => {
-    setToast(message)
-    window.setTimeout(() => setToast(''), 2400)
-  }
-
-  const createServer = (input: { color: string; description: string; icon: string; name: string; privacy: 'public' | 'private' }) => {
-    if (!currentUser || !input.name.trim()) {
-      return
-    }
+  const createServer = (input: CreateServerInput) => {
+    if (!currentUser || !input.name.trim()) return
 
     const serverId = createId('server')
-    const baseChannels = createBaseChannels(serverId)
+    const baseChannels = createDefaultChannels(serverId)
     const server: Server = {
       channels: baseChannels,
       color: input.color,
-      description: input.description.trim(),
+      description: input.description.trim() || `Сервер Nexus: ${input.template ?? 'свое пространство'}`,
       icon: input.icon.trim() || input.name.trim()[0]?.toUpperCase() || 'N',
       id: serverId,
       memberCount: 1,
@@ -293,15 +302,14 @@ export function useNexusStore(initialServerId = '', initialChannelId = '') {
     setServerMembers((current) => [...current, { roleId: 'owner', serverId, userId: currentUser.id }])
     setMessages((current) => [...current, welcomeMessage])
     setActiveServerId(serverId)
-    setActiveChannelId(baseChannels[1].id)
+    setActiveChannelId(baseChannels.find((channel) => channel.name === 'general')?.id ?? baseChannels[0].id)
     setSettings((current) => ({ ...current, onboardingComplete: true }))
     setActiveModal(null)
+    showToast('Сервер успешно создан')
   }
 
   const createChannel = (input: { category: ChannelCategory; isPrivate: boolean; name: string; type: ChannelType }) => {
-    if (!activeServer || !input.name.trim()) {
-      return
-    }
+    if (!activeServer || !input.name.trim()) return
 
     const channel: Channel = {
       category: input.category,
@@ -315,27 +323,21 @@ export function useNexusStore(initialServerId = '', initialChannelId = '') {
 
     setChannels((current) => [...current, channel])
     if (channel.type !== 'voice' && currentUser) {
-      setMessages((current) => [
-        ...current,
-        {
-          authorId: currentUser.id,
-          channelId: channel.id,
-          content: 'Канал создан',
-          id: createId('message'),
-          reactions: [],
-          timestamp: 'только что',
-        },
-      ])
+      setMessages((current) => [...current, {
+        authorId: currentUser.id,
+        channelId: channel.id,
+        content: 'Канал создан',
+        id: createId('message'),
+        reactions: [],
+        timestamp: 'только что',
+      }])
     }
     setActiveChannelId(channel.id)
     setActiveModal(null)
   }
 
   const createInvite = (serverId = activeServer?.id) => {
-    if (!serverId) {
-      return ''
-    }
-
+    if (!serverId) return ''
     const invite: Invite = {
       code: createId('invite').replace('invite-', '').slice(0, 8).toUpperCase(),
       createdAt: new Date().toISOString(),
@@ -343,34 +345,31 @@ export function useNexusStore(initialServerId = '', initialChannelId = '') {
     }
 
     setInvites((current) => [...current, invite])
+    showToast(`Invite создан: ${invite.code}`)
     return invite.code
   }
 
   const joinServerByInvite = (code: string) => {
-    const invite = invites.find((item) => item.code.toLowerCase() === code.trim().toLowerCase())
+    const parsedCode = parseInviteCode(code)
+    const invite = invites.find((item) => item.code.toLowerCase() === parsedCode.toLowerCase())
 
     if (!invite || !currentUser) {
-      showSoon('Invite-код не найден')
+      showToast('Приглашение не найдено или истекло')
       return false
     }
 
     setServerMembers((current) => {
-      if (current.some((member) => member.serverId === invite.serverId && member.userId === currentUser.id)) {
-        return current
-      }
-
+      if (current.some((member) => member.serverId === invite.serverId && member.userId === currentUser.id)) return current
       return [...current, { roleId: 'member', serverId: invite.serverId, userId: currentUser.id }]
     })
     selectServer(invite.serverId)
     setActiveModal(null)
+    showToast('Вы присоединились к серверу')
     return true
   }
 
   const sendMessage = (content: string) => {
-    if (!activeChannel || !content.trim() || !currentUser) {
-      return
-    }
-
+    if (!activeChannel || !content.trim() || !currentUser) return
     const message: Message = {
       authorId: currentUser.id,
       channelId: activeChannel.id,
@@ -379,21 +378,13 @@ export function useNexusStore(initialServerId = '', initialChannelId = '') {
       reactions: [],
       timestamp: formatTime(),
     }
-
     setMessages((current) => [...current, message])
   }
 
   const editMessage = (messageId: string, content: string) => {
     const nextContent = content.trim()
-    if (!nextContent) {
-      return
-    }
-
-    setMessages((current) =>
-      current.map((message) =>
-        message.id === messageId && message.authorId === currentUser?.id ? { ...message, content: nextContent, edited: true } : message,
-      ),
-    )
+    if (!nextContent) return
+    setMessages((current) => current.map((message) => message.id === messageId && message.authorId === currentUser?.id ? { ...message, content: nextContent, edited: true } : message))
   }
 
   const deleteMessage = (messageId: string) => {
@@ -401,54 +392,35 @@ export function useNexusStore(initialServerId = '', initialChannelId = '') {
   }
 
   const addReaction = (messageId: string, emoji: string) => {
-    setMessages((current) =>
-      current.map((message) => {
-        if (message.id !== messageId) {
-          return message
-        }
-
-        const existing = message.reactions.find((reaction) => reaction.emoji === emoji)
-        return {
-          ...message,
-          reactions: existing
-            ? message.reactions.map((reaction) =>
-                reaction.emoji === emoji ? { ...reaction, count: reaction.count + 1 } : reaction,
-              )
-            : [...message.reactions, { emoji, count: 1 }],
-        }
-      }),
-    )
+    setMessages((current) => current.map((message) => {
+      if (message.id !== messageId) return message
+      const existing = message.reactions.find((reaction) => reaction.emoji === emoji)
+      return {
+        ...message,
+        reactions: existing
+          ? message.reactions.map((reaction) => reaction.emoji === emoji ? { ...reaction, count: reaction.count + 1 } : reaction)
+          : [...message.reactions, { emoji, count: 1 }],
+      }
+    }))
   }
 
   const searchUsers = (query: string) => {
     const normalized = query.trim().toLowerCase()
-    if (!normalized || !currentUser) {
-      return []
-    }
-
+    if (!normalized || !currentUser) return []
     return users.filter((user) => user.id !== currentUser.id && (user.username.includes(normalized) || user.email.toLowerCase().includes(normalized)))
   }
 
   const sendFriendRequest = (targetUserId: string) => {
-    if (!currentUser || targetUserId === currentUser.id) {
-      return
-    }
-
+    if (!currentUser || targetUserId === currentUser.id) return
     setFriendRequests((current) => {
-      if (current.some((request) => request.fromUserId === currentUser.id && request.toUserId === targetUserId && request.status === 'pending')) {
-        return current
-      }
-
+      if (current.some((request) => request.fromUserId === currentUser.id && request.toUserId === targetUserId && request.status === 'pending')) return current
       return [...current, { fromUserId: currentUser.id, id: createId('friend'), status: 'pending', toUserId: targetUserId }]
     })
   }
 
   const acceptFriendRequest = (requestId: string) => {
     const request = friendRequests.find((item) => item.id === requestId)
-    if (!request) {
-      return
-    }
-
+    if (!request) return
     setFriendRequests((current) => current.map((item) => item.id === requestId ? { ...item, status: 'accepted' } : item))
     setFriendships((current) => [...current, { id: createId('friendship'), userIds: [request.fromUserId, request.toUserId] }])
   }
@@ -458,10 +430,7 @@ export function useNexusStore(initialServerId = '', initialChannelId = '') {
   }
 
   const startDirectChat = (userId: string) => {
-    if (!currentUser) {
-      return ''
-    }
-
+    if (!currentUser) return ''
     const existing = directChats.find((chat) => chat.participantIds.includes(currentUser.id) && chat.participantIds.includes(userId))
     if (existing) {
       setSettings((current) => ({ ...current, activeDmId: existing.id }))
@@ -475,20 +444,14 @@ export function useNexusStore(initialServerId = '', initialChannelId = '') {
   }
 
   const sendDirectMessage = (chatId: string, content: string) => {
-    if (!currentUser || !content.trim()) {
-      return
-    }
-
+    if (!currentUser || !content.trim()) return
     setDirectChats((current) => current.map((chat) => chat.id === chatId
       ? { ...chat, messages: [...chat.messages, { authorId: currentUser.id, content: content.trim(), id: createId('dm-message'), timestamp: formatTime() }] }
       : chat))
   }
 
   const joinVoiceChannel = (channelId = activeChannel?.id) => {
-    if (!channelId || !currentUser) {
-      return
-    }
-
+    if (!channelId || !currentUser) return
     setVoiceParticipants((current) => {
       const withoutUser = current.filter((participant) => participant.userId !== currentUser.id)
       return [...withoutUser, { camera, deafened, muted, screenSharing, speaking: true, userId: currentUser.id }]
@@ -496,60 +459,62 @@ export function useNexusStore(initialServerId = '', initialChannelId = '') {
   }
 
   const leaveVoiceChannel = () => {
-    if (!currentUser) {
-      return
-    }
-
+    if (!currentUser) return
     setVoiceParticipants((current) => current.filter((participant) => participant.userId !== currentUser.id))
   }
 
-  const toggleVoiceFlag = (key: 'muted' | 'deafened' | 'camera' | 'screenSharing') => {
-    if (!currentUser) {
-      return
-    }
+  const syncVoiceFlag = (key: 'muted' | 'deafened' | 'camera' | 'screenSharing', value: boolean) => {
+    if (!currentUser) return
+    setVoiceParticipants((current) => current.map((participant) => participant.userId === currentUser.id ? { ...participant, [key]: value } : participant))
+  }
 
-    setVoiceParticipants((current) =>
-      current.map((participant) =>
-        participant.userId === currentUser.id ? { ...participant, [key]: !participant[key] } : participant,
-      ),
-    )
+  const toggleVoiceFlag = (key: 'muted' | 'deafened' | 'camera' | 'screenSharing') => {
+    if (!currentUser) return
+    setVoiceParticipants((current) => current.map((participant) => participant.userId === currentUser.id ? { ...participant, [key]: !participant[key] } : participant))
   }
 
   const setVoiceMuted = (value: boolean) => {
     setMuted(value)
-    if (currentUser) {
-      setVoiceParticipants((current) => current.map((participant) => participant.userId === currentUser.id ? { ...participant, muted: value } : participant))
-    }
+    syncVoiceFlag('muted', value)
+  }
+
+  const toggleMute = () => setVoiceMuted(!muted)
+  const toggleDeafen = () => setVoiceDeafened(!deafened)
+  const toggleStreaming = () => setVoiceScreenSharing(!screenSharing)
+
+  const setActivity = (activity: Omit<NexusActivity, 'id' | 'startedAt'> & { id?: string; startedAt?: string }) => {
+    setCurrentActivity(activityService.setManualActivity(activity))
+  }
+
+  const clearActivity = () => {
+    activityService.clearActivity()
+    setCurrentActivity(null)
+  }
+
+  const updateUserStatus = (status: User['status']) => {
+    if (!currentUser) return
+    setUsers((current) => current.map((user) => user.id === currentUser.id ? { ...user, status } : user))
   }
 
   const setVoiceDeafened = (value: boolean) => {
     setDeafened(value)
-    if (currentUser) {
-      setVoiceParticipants((current) => current.map((participant) => participant.userId === currentUser.id ? { ...participant, deafened: value } : participant))
-    }
+    syncVoiceFlag('deafened', value)
   }
 
   const setVoiceCamera = (value: boolean) => {
     setCamera(value)
-    if (currentUser) {
-      setVoiceParticipants((current) => current.map((participant) => participant.userId === currentUser.id ? { ...participant, camera: value } : participant))
-    }
+    syncVoiceFlag('camera', value)
   }
 
   const setVoiceScreenSharing = (value: boolean) => {
     setScreenSharing(value)
-    if (currentUser) {
-      setVoiceParticipants((current) => current.map((participant) => participant.userId === currentUser.id ? { ...participant, screenSharing: value } : participant))
-    }
+    syncVoiceFlag('screenSharing', value)
   }
 
-  const updateProfile = (profile: Partial<User>) => {
-    if (!currentUser) {
-      return
-    }
-
+  const updateProfile = async (profile: Partial<User>) => {
+    if (!currentUser) return
     setUsers((current) => current.map((user) => user.id === currentUser.id ? { ...user, ...profile } : user))
-    authService.updateProfile({
+    await authService.updateProfile({
       avatar: profile.avatar,
       displayName: profile.displayName,
       email: profile.email,
@@ -559,10 +524,10 @@ export function useNexusStore(initialServerId = '', initialChannelId = '') {
   }
 
   useEffect(() => {
-    if (authUser) {
-      writeStorage(storageKeys.currentUser, authUser)
-    }
+    if (authUser) writeStorage(storageKeys.currentUser, authUser)
   }, [authUser])
+
+  useEffect(() => activityService.subscribeActivityChanges(setCurrentActivity), [])
 
   useEffect(() => writeStorage(storageKeys.servers, servers.map((server) => ({
     color: server.color,
@@ -583,7 +548,7 @@ export function useNexusStore(initialServerId = '', initialChannelId = '') {
   useEffect(() => writeStorage(storageKeys.directChats, directChats), [directChats])
   useEffect(() => writeStorage(storageKeys.invites, invites), [invites])
   useEffect(() => writeStorage(storageKeys.settings, settings), [settings])
-  useEffect(() => writeStorage('nexus.voiceParticipants', voiceParticipants), [voiceParticipants])
+  useEffect(() => writeStorage(storageKeys.voiceParticipants, voiceParticipants), [voiceParticipants])
 
   return {
     acceptFriendRequest,
@@ -596,10 +561,14 @@ export function useNexusStore(initialServerId = '', initialChannelId = '') {
     camera,
     channelMessages,
     channels,
+    closeAddServerModal,
     createChannel,
+    createDefaultChannels,
     createInvite,
     createServer,
     currentUser,
+    currentActivity,
+    clearActivity,
     deafened,
     declineFriendRequest,
     deleteMessage,
@@ -617,6 +586,7 @@ export function useNexusStore(initialServerId = '', initialChannelId = '') {
     messages,
     muted,
     notifications,
+    openAddServerModal,
     roles,
     screenSharing,
     search,
@@ -630,6 +600,7 @@ export function useNexusStore(initialServerId = '', initialChannelId = '') {
     serverMembers,
     serverUsers,
     setActiveModal,
+    setActivity,
     setCamera: setVoiceCamera,
     setDeafened: setVoiceDeafened,
     setMembersVisible,
@@ -638,9 +609,14 @@ export function useNexusStore(initialServerId = '', initialChannelId = '') {
     setSearch,
     settings,
     showSoon,
+    showToast,
     startDirectChat,
     toast,
+    toggleDeafen,
+    toggleMute,
+    toggleStreaming,
     toggleVoiceFlag,
+    updateUserStatus,
     updateProfile,
     users,
     voiceParticipants,
