@@ -667,11 +667,16 @@ export function useNexusStore(initialServerId = '', initialChannelId = '') {
   const searchUsers = (query: string) => {
     const normalized = query.trim().toLowerCase()
     if (!normalized || !currentUser) return []
-    return users.filter((user) => user.id !== currentUser.id && (user.username.includes(normalized) || user.email.toLowerCase().includes(normalized)))
+    return users.filter((user) => user.id !== currentUser.id && (
+      user.displayName.toLowerCase().includes(normalized)
+      || user.username.toLowerCase().includes(normalized)
+      || user.email.toLowerCase().includes(normalized)
+    ))
   }
 
   const sendFriendRequest = (targetUserId: string) => {
     if (!currentUser || targetUserId === currentUser.id) return
+    if (friendships.some((friendship) => friendship.userIds.includes(currentUser.id) && friendship.userIds.includes(targetUserId))) return
     setFriendRequests((current) => {
       if (current.some((request) => request.fromUserId === currentUser.id && request.toUserId === targetUserId && request.status === 'pending')) return current
       return [...current, { fromUserId: currentUser.id, id: createId('friend'), status: 'pending', toUserId: targetUserId }]

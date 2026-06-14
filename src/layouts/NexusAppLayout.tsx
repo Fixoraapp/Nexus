@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Navigate, useLocation, useParams } from 'react-router-dom'
-import { Copy, MessageCircle, Search, Server, UserPlus, Users } from 'lucide-react'
+import { Activity, Bell, Check, Compass, Copy, Hash, MessageCircle, Plus, Search, Server, ShieldCheck, Sparkles, UserCheck, UserPlus, Users } from 'lucide-react'
 import { AddServerModal } from '../components/AddServerModal'
 import { ActivityModal } from '../components/ActivityModal'
 import { ChannelSidebar } from '../components/ChannelSidebar'
@@ -125,22 +125,183 @@ export function NexusAppLayout() {
   )
 }
 
-function OnboardingSurface({ currentUser, openAddServerModal, servers, setActiveModal, showSoon }: ReturnType<typeof useNexusStore>) {
+function OnboardingSurface(store: ReturnType<typeof useNexusStore>) {
+  const [friendQuery, setFriendQuery] = useState('')
+  const {
+    currentActivity,
+    currentUser,
+    directChats,
+    friendRequests,
+    friends,
+    openAddServerModal,
+    searchUsers,
+    sendFriendRequest,
+    servers,
+    setActiveModal,
+    showSoon,
+    startDirectChat,
+  } = store
   const hasServers = servers.length > 0
+  const pendingIncoming = friendRequests.filter((request) => request.toUserId === currentUser?.id && request.status === 'pending')
+  const searchResults = searchUsers(friendQuery).slice(0, 5)
+  const recentFriends = friends.slice(0, 4)
+  const onlineFriends = friends.filter((friend) => friend.status !== 'offline').length
+  const totalChannels = servers.reduce((count, server) => count + server.channels.length, 0)
+  const openFriends = () => {
+    window.location.hash = '#/app/friends'
+  }
+  const openDm = (userId?: string) => {
+    if (userId) startDirectChat(userId)
+    window.location.hash = '#/app/dm'
+  }
 
   return (
-    <main className="feature-surface onboarding-surface">
-      <section className="real-welcome-panel">
-        <span className="nexus-icon">N</span>
-        <p className="eyebrow">Nexus Desktop</p>
-        <h1>Добро пожаловать в Nexus{currentUser ? `, ${currentUser.displayName}` : ''}</h1>
-        <p>{hasServers ? 'Выберите сервер слева или создайте новое пространство.' : 'У вас пока нет серверов. Создайте первое сообщество или присоединитесь по приглашению.'}</p>
-        <div className="onboarding-actions">
-          <button type="button" onClick={openAddServerModal}><Server size={18} />Создать свой сервер</button>
-          <button type="button" onClick={() => setActiveModal('joinServer')}><Copy size={18} />Присоединиться по приглашению</button>
-          <button type="button" onClick={() => showSoon()}><MessageCircle size={18} />Перейти в личные сообщения</button>
+    <main className="feature-surface onboarding-surface nexus-home">
+      <section className="home-command-bar">
+        <div>
+          <span className="nexus-icon">N</span>
+          <span>
+            <strong>Nexus</strong>
+            <small>{currentUser ? `@${currentUser.username}` : 'desktop workspace'}</small>
+          </span>
         </div>
-        {hasServers ? <small>Invite для выбранного сервера можно создать в панели участников.</small> : null}
+        <label className="home-friend-search">
+          <Search size={16} />
+          <input value={friendQuery} onChange={(event) => setFriendQuery(event.target.value)} placeholder="Найти друга по имени, username или email" />
+        </label>
+        <button type="button" onClick={openFriends}><Users size={17} />Друзья</button>
+      </section>
+
+      <section className="home-hero-panel">
+        <div className="home-hero-copy">
+          <p className="eyebrow"><Sparkles size={14} /> Nexus Desktop</p>
+          <h1>Добро пожаловать{currentUser ? `, ${currentUser.displayName}` : ''}</h1>
+          <p>{hasServers ? 'Выберите сервер слева, найдите друзей или продолжайте общение в личных сообщениях.' : 'Создайте первое пространство, присоединитесь по invite-коду или найдите друзей для личного общения.'}</p>
+          <div className="home-primary-actions">
+            <button type="button" onClick={openAddServerModal}><Plus size={18} />Создать сервер</button>
+            <button type="button" onClick={() => setActiveModal('joinServer')}><Copy size={18} />Ввести invite</button>
+            <button type="button" onClick={() => openDm()}><MessageCircle size={18} />Открыть DM</button>
+          </div>
+        </div>
+        <div className="home-status-grid">
+          <article><Server size={18} /><strong>{servers.length}</strong><small>серверов</small></article>
+          <article><Hash size={18} /><strong>{totalChannels}</strong><small>каналов</small></article>
+          <article><Users size={18} /><strong>{friends.length}</strong><small>друзей</small></article>
+          <article><Bell size={18} /><strong>{pendingIncoming.length}</strong><small>заявок</small></article>
+        </div>
+      </section>
+
+      <section className="home-grid">
+        <section className="home-panel home-search-panel">
+          <header>
+            <h2>Поиск людей</h2>
+            <button type="button" onClick={openFriends}>Все друзья</button>
+          </header>
+          {friendQuery.trim() ? (
+            <div className="home-user-list">
+              {searchResults.map((user) => {
+                const isFriend = friends.some((friend) => friend.id === user.id)
+                const pending = friendRequests.some((request) => request.fromUserId === currentUser?.id && request.toUserId === user.id && request.status === 'pending')
+                return (
+                  <article key={user.id}>
+                    <span className={`avatar avatar-${user.status}`}>{user.avatar}</span>
+                    <div><strong>{user.displayName}</strong><small>@{user.username} · {user.email}</small></div>
+                    {isFriend ? (
+                      <button type="button" onClick={() => openDm(user.id)}><MessageCircle size={15} />DM</button>
+                    ) : (
+                      <button disabled={pending} type="button" onClick={() => sendFriendRequest(user.id)}>
+                        {pending ? <Check size={15} /> : <UserPlus size={15} />}
+                        {pending ? 'Отправлено' : 'Добавить'}
+                      </button>
+                    )}
+                  </article>
+                )
+              })}
+              {!searchResults.length ? <p>Ничего не найдено. Проверьте username или email.</p> : null}
+            </div>
+          ) : (
+            <div className="home-empty-card">
+              <Search size={24} />
+              <strong>Начните вводить имя</strong>
+              <small>Поиск работает по отображаемому имени, username и email.</small>
+            </div>
+          )}
+        </section>
+
+        <section className="home-panel">
+          <header>
+            <h2>Быстрый доступ</h2>
+            <span><Activity size={16} /></span>
+          </header>
+          <div className="home-action-list">
+            <button type="button" onClick={openAddServerModal}><Server size={18} /><span><strong>Новый сервер</strong><small>Создать пространство для друзей или команды</small></span></button>
+            <button type="button" onClick={() => setActiveModal('joinServer')}><Compass size={18} /><span><strong>Присоединиться</strong><small>Войти по invite-коду</small></span></button>
+            <button type="button" onClick={() => setActiveModal('activity')}><Activity size={18} /><span><strong>Активность</strong><small>{currentActivity?.name || 'Выбрать статус вручную'}</small></span></button>
+            <button type="button" onClick={() => showSoon('Обзор сообществ скоро будет доступен')}><ShieldCheck size={18} /><span><strong>Обзор сообществ</strong><small>Найти публичные пространства</small></span></button>
+          </div>
+        </section>
+
+        <section className="home-panel">
+          <header>
+            <h2>Друзья онлайн</h2>
+            <strong>{onlineFriends}</strong>
+          </header>
+          <div className="home-user-list compact">
+            {recentFriends.map((friend) => (
+              <article key={friend.id}>
+                <span className={`avatar avatar-${friend.status}`}>{friend.avatar}</span>
+                <div><strong>{friend.displayName}</strong><small>{friend.activity}</small></div>
+                <button type="button" onClick={() => openDm(friend.id)}><MessageCircle size={15} /></button>
+              </article>
+            ))}
+            {!recentFriends.length ? (
+              <div className="home-empty-card">
+                <UserCheck size={24} />
+                <strong>Список друзей пуст</strong>
+                <small>Найдите пользователя сверху и отправьте заявку.</small>
+              </div>
+            ) : null}
+          </div>
+        </section>
+
+        <section className="home-panel">
+          <header>
+            <h2>Сервера</h2>
+            <strong>{servers.length}</strong>
+          </header>
+          <div className="home-server-list">
+            {servers.slice(0, 5).map((server) => (
+              <button key={server.id} type="button" onClick={() => {
+                const channel = server.channels.find((item) => item.type === 'text') ?? server.channels[0]
+                window.location.hash = channel ? `#/app/server/${server.id}/channel/${channel.id}` : '#/app'
+              }}>
+                <span>{server.icon}</span>
+                <div><strong>{server.name}</strong><small>{server.memberCount} участников · {server.onlineCount} онлайн</small></div>
+              </button>
+            ))}
+            {!servers.length ? <div className="home-empty-card"><Server size={24} /><strong>Нет серверов</strong><small>Создайте свой или присоединитесь по invite.</small></div> : null}
+          </div>
+        </section>
+
+        <section className="home-panel home-wide-panel">
+          <header>
+            <h2>Личные сообщения</h2>
+            <button type="button" onClick={() => openDm()}>Открыть</button>
+          </header>
+          <div className="home-dm-strip">
+            {directChats.slice(0, 4).map((chat) => {
+              const friend = chat.participantIds.map((id) => store.users.find((user) => user.id === id)).find((user) => user && user.id !== currentUser?.id)
+              const lastMessage = chat.messages.at(-1)
+              return friend ? (
+                <button key={chat.id} type="button" onClick={() => openDm(friend.id)}>
+                  <span className={`avatar avatar-${friend.status}`}>{friend.avatar}</span>
+                  <div><strong>{friend.displayName}</strong><small>{lastMessage?.content || 'Начать переписку'}</small></div>
+                </button>
+              ) : null
+            })}
+            {!directChats.length ? <p>DM пока нет. Добавьте друга и начните переписку.</p> : null}
+          </div>
+        </section>
       </section>
     </main>
   )
