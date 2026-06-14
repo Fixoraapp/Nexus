@@ -1,4 +1,3 @@
-```ts
 const TOKEN_STORAGE_KEY = 'nexus.token'
 const CURRENT_USER_STORAGE_KEY = 'nexus.currentUser'
 const SESSION_STORAGE_KEY = 'nexus.auth.session.v1'
@@ -96,7 +95,8 @@ function safeRead<T>(key: string, fallback: T): T {
 }
 
 function toNexusUser(user: ApiUser): NexusUser {
-  const displayName = `${user.firstName} ${user.lastName}`.trim() || user.username
+  const displayName =
+    `${user.firstName} ${user.lastName}`.trim() || user.username
 
   return {
     avatar: user.avatar || displayName.slice(0, 2).toUpperCase(),
@@ -113,7 +113,10 @@ function toNexusUser(user: ApiUser): NexusUser {
   }
 }
 
-function saveSession(token: string, apiUser: ApiUser): NexusAuthSession {
+function saveSession(
+  token: string,
+  apiUser: ApiUser
+): NexusAuthSession {
   const currentUser = toNexusUser(apiUser)
 
   const session: NexusAuthSession = {
@@ -123,9 +126,22 @@ function saveSession(token: string, apiUser: ApiUser): NexusAuthSession {
   }
 
   window.localStorage.setItem(TOKEN_STORAGE_KEY, token)
-  window.localStorage.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(currentUser))
-  window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(session.settings))
-  window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session))
+
+  window.localStorage.setItem(
+    CURRENT_USER_STORAGE_KEY,
+    JSON.stringify(currentUser)
+  )
+
+  window.localStorage.setItem(
+    SETTINGS_STORAGE_KEY,
+    JSON.stringify(session.settings)
+  )
+
+  window.localStorage.setItem(
+    SESSION_STORAGE_KEY,
+    JSON.stringify(session)
+  )
+
   window.localStorage.removeItem(LEGACY_SESSION_STORAGE_KEY)
 
   return session
@@ -133,14 +149,23 @@ function saveSession(token: string, apiUser: ApiUser): NexusAuthSession {
 
 async function readApiError(response: Response) {
   try {
-    const body = (await response.json()) as { message?: string }
-    return body.message || `Request failed with status ${response.status}`
+    const body = (await response.json()) as {
+      message?: string
+    }
+
+    return (
+      body.message ||
+      `Request failed with status ${response.status}.`
+    )
   } catch {
-    return `Request failed with status ${response.status}`
+    return `Request failed with status ${response.status}.`
   }
 }
 
-async function apiRequest<T>(path: string, init: RequestInit = {}) {
+async function apiRequest<T>(
+  path: string,
+  init: RequestInit = {}
+) {
   const response = await fetch(`${API_URL}${path}`, {
     ...init,
     headers: {
@@ -158,19 +183,25 @@ async function apiRequest<T>(path: string, init: RequestInit = {}) {
 
 export const authService = {
   async register(input: RegisterInput) {
-    const result = await apiRequest<AuthResponse>('/api/auth/register', {
-      method: 'POST',
-      body: JSON.stringify(input),
-    })
+    const result = await apiRequest<AuthResponse>(
+      '/api/auth/register',
+      {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }
+    )
 
     return saveSession(result.token, result.user)
   },
 
   async login(input: LoginInput) {
-    const result = await apiRequest<AuthResponse>('/api/auth/login', {
-      method: 'POST',
-      body: JSON.stringify(input),
-    })
+    const result = await apiRequest<AuthResponse>(
+      '/api/auth/login',
+      {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }
+    )
 
     return saveSession(result.token, result.user)
   },
@@ -182,11 +213,14 @@ export const authService = {
       return null
     }
 
-    const result = await apiRequest<{ user: ApiUser }>('/api/auth/me', {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
+    const result = await apiRequest<{ user: ApiUser }>(
+      '/api/auth/me',
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    )
 
     return saveSession(token, result.user)
   },
@@ -218,6 +252,7 @@ export const authService = {
     }
 
     const token = this.getToken()
+
     const currentUser = safeRead<NexusUser | null>(
       CURRENT_USER_STORAGE_KEY,
       null
@@ -241,20 +276,26 @@ export const authService = {
       return null
     }
 
-    const result = await apiRequest<{ user: ApiUser }>('/api/users/me', {
-      method: 'PATCH',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        avatar: profile.avatar,
-        bio: profile.bio,
-        firstName: profile.displayName?.split(' ')[0],
-        lastName: profile.displayName?.split(' ').slice(1).join(' '),
-        status: profile.status,
-        username: profile.username,
-      }),
-    })
+    const result = await apiRequest<{ user: ApiUser }>(
+      '/api/users/me',
+      {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          avatar: profile.avatar,
+          bio: profile.bio,
+          firstName: profile.displayName?.split(' ')[0],
+          lastName: profile.displayName
+            ?.split(' ')
+            .slice(1)
+            .join(' '),
+          status: profile.status,
+          username: profile.username,
+        }),
+      }
+    )
 
     return saveSession(token, result.user)
   },
@@ -277,4 +318,3 @@ export const authService = {
     )
   },
 }
-```
