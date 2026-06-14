@@ -6107,6 +6107,46 @@
   }
 }
 
+@media (max-width: 1460px) {
+  .workspace-body:has(.nexus-home) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .workspace-body:has(.nexus-home) > .members-panel {
+    display: none;
+  }
+}
+
+@media (max-width: 1180px) {
+  .nexus-home {
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .home-command-bar {
+    grid-template-columns: minmax(150px, auto) minmax(220px, 1fr) auto;
+  }
+
+  .home-grid,
+  .home-hero-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .home-search-panel,
+  .home-wide-panel {
+    grid-column: auto;
+  }
+
+  .home-status-grid,
+  .home-dm-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .home-status-grid article {
+    min-height: 82px;
+  }
+}
+
 @media (max-width: 860px) {
   .home-command-bar,
   .home-hero-panel,
@@ -6125,5 +6165,39 @@
 
   .home-status-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .nexus-shell {
+    grid-template-columns: 60px minmax(210px, 250px) minmax(0, 1fr);
+  }
+
+  .nexus-home {
+    padding: 10px;
+  }
+
+  .home-command-bar,
+  .home-status-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .home-hero-copy h1 {
+    font-size: 24px;
+  }
+
+  .home-primary-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .home-user-list article,
+  .home-user-list.compact article {
+    grid-template-columns: 38px minmax(0, 1fr);
+  }
+
+  .home-user-list article > button {
+    grid-column: 1 / -1;
+    width: 100%;
   }
 }

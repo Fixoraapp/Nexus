@@ -18,6 +18,9 @@ type Props = Pick<
   | 'currentActivity'
   | 'currentUser'
   | 'deafened'
+  | 'directChats'
+  | 'friends'
+  | 'friendRequests'
   | 'leaveVoiceChannel'
   | 'logout'
   | 'markServerAsRead'
@@ -43,6 +46,7 @@ type Props = Pick<
   | 'setMuted'
   | 'settings'
   | 'showSoon'
+  | 'startDirectChat'
   | 'toggleDeafen'
   | 'toggleHideMutedChannels'
   | 'toggleMute'
@@ -62,9 +66,21 @@ const categoryLabels: Record<ChannelCategory, string> = {
   voice: 'ГОЛОСОВЫЕ КАНАЛЫ',
 }
 
-const categoryOrder: ChannelCategory[] = ['information', 'text', 'voice', 'events', 'private']
+const categoryOrder: ChannelCategory[] = [
+  'information',
+  'text',
+  'voice',
+  'events',
+  'private',
+]
 
-function ChannelIcon({ isPrivate, type }: { isPrivate: boolean; type: ChannelType }) {
+function ChannelIcon({
+  isPrivate,
+  type,
+}: {
+  isPrivate: boolean
+  type: ChannelType
+}) {
   if (isPrivate) return <Lock size={17} />
   if (type === 'voice') return <Volume2 size={17} />
   return <Hash size={17} />
@@ -74,34 +90,75 @@ function defaultTypeForCategory(category: ChannelCategory): ChannelType {
   return category === 'voice' ? 'voice' : 'text'
 }
 
-function canCreateChannel(currentUser: Props['currentUser'], activeServer: Props['activeServer'], serverUsers: Props['serverUsers']) {
+function canCreateChannel(
+  currentUser: Props['currentUser'],
+  activeServer: Props['activeServer'],
+  serverUsers: Props['serverUsers'],
+) {
   if (!currentUser || !activeServer) return false
   if (activeServer.ownerId === currentUser.id) return true
-  const member = serverUsers.find((user) => user.id === currentUser.id)
-  return Boolean(member?.roleIds.some((role) => role === 'owner' || role === 'admin'))
+
+  const member = serverUsers.find((u) => u.id === currentUser.id)
+
+  return Boolean(
+    member?.roleIds.some((role) => role === 'owner' || role === 'admin'),
+  )
 }
 
 export function ChannelSidebar(props: Props) {
-  const { activeChannelId, activeServer, openCreateChannelModal, selectChannel, setActiveModal, voiceParticipants } = props
+  const {
+    activeChannelId,
+    activeServer,
+    openCreateChannelModal,
+    selectChannel,
+    setActiveModal,
+    voiceParticipants,
+  } = props
+
   const [serverMenuOpen, setServerMenuOpen] = useState(false)
-  const voiceUsers = (channelId: string) => props.serverUsers.filter((user) => voiceParticipants.some((participant) => participant.userId === user.id && participant.channelId === channelId))
-  const canCreate = canCreateChannel(props.currentUser, activeServer, props.serverUsers)
+
+  const voiceUsers = (channelId: string) =>
+    props.serverUsers.filter((user) =>
+      voiceParticipants.some(
+        (p) => p.userId === user.id && p.channelId === channelId,
+      ),
+    )
+
+  const canCreate = canCreateChannel(
+    props.currentUser,
+    activeServer,
+    props.serverUsers,
+  )
 
   if (!activeServer) {
     return (
       <aside className="channel-sidebar">
         <header className="server-header">
-          <button type="button"><span>Nexus</span><ChevronDown size={16} /></button>
+          <button type="button">
+            <span>Nexus</span>
+            <ChevronDown size={16} />
+          </button>
         </header>
-        <button className="browse-channels is-active" type="button" onClick={() => selectChannel('home')}>
+
+        <button
+          className="browse-channels is-active"
+          type="button"
+          onClick={() => selectChannel('home')}
+        >
           <Home size={18} />
           Главная
         </button>
+
         <div className="channel-empty">
           <strong>Нет серверов</strong>
-          <small>Создайте первое сообщество или присоединитесь по invite-коду.</small>
-          <button type="button" onClick={() => setActiveModal('addServer')}>Создать сервер</button>
+          <small>
+            Создайте первое сообщество или присоединитесь по invite-коду.
+          </small>
+          <button type="button" onClick={() => setActiveModal('addServer')}>
+            Создать сервер
+          </button>
         </div>
+
         <UserProfileBar {...props} />
       </aside>
     )
@@ -110,51 +167,94 @@ export function ChannelSidebar(props: Props) {
   return (
     <aside className="channel-sidebar">
       <header className="server-header">
-        <button className={serverMenuOpen ? 'is-open' : ''} type="button" onClick={() => setServerMenuOpen((value) => !value)}>
+        <button
+          className={serverMenuOpen ? 'is-open' : ''}
+          type="button"
+          onClick={() => setServerMenuOpen((v) => !v)}
+        >
           <span>{activeServer.name}</span>
           <ChevronDown size={16} />
         </button>
-        {serverMenuOpen ? <ServerMenuDropdown {...props} onClose={() => setServerMenuOpen(false)} server={activeServer} /> : null}
+
+        {serverMenuOpen ? (
+          <ServerMenuDropdown
+            {...props}
+            onClose={() => setServerMenuOpen(false)}
+            server={activeServer}
+          />
+        ) : null}
       </header>
 
-      <button className={`browse-channels ${activeChannelId === 'home' ? 'is-active' : ''}`} type="button" onClick={() => selectChannel('home')}>
+      <button
+        className={`browse-channels ${
+          activeChannelId === 'home' ? 'is-active' : ''
+        }`}
+        type="button"
+        onClick={() => selectChannel('home')}
+      >
         <Home size={18} />
         Главная
       </button>
 
       <nav className="channel-groups" aria-label="Каналы">
         {categoryOrder.map((category) => {
-          const groupedChannels = activeServer.channels.filter((channel) => channel.category === category && !channel.categoryId)
+          const groupedChannels = activeServer.channels.filter(
+            (c) => c.category === category && !c.categoryId,
+          )
+
           if (!groupedChannels.length && category === 'private') return null
 
           return (
             <section className="channel-group" key={category}>
               <div className="channel-group-title">
                 <span>{categoryLabels[category]}</span>
+
                 <button
                   disabled={!canCreate}
                   type="button"
-                  onClick={() => openCreateChannelModal({ category, defaultType: defaultTypeForCategory(category) })}
-                  title={canCreate ? 'Создать канал' : 'Недостаточно прав'}
+                  onClick={() =>
+                    openCreateChannelModal({
+                      category,
+                      defaultType: defaultTypeForCategory(category),
+                    })
+                  }
                 >
                   <Plus size={15} />
                 </button>
               </div>
+
               {groupedChannels.map((channel) => (
                 <div key={channel.id}>
                   <button
-                    className={`channel-row ${channel.id === activeChannelId ? 'is-active' : ''}`}
+                    className={`channel-row ${
+                      channel.id === activeChannelId ? 'is-active' : ''
+                    }`}
                     type="button"
                     onClick={() => selectChannel(channel.id)}
                   >
-                    <ChannelIcon isPrivate={channel.isPrivate} type={channel.type} />
+                    <ChannelIcon
+                      isPrivate={channel.isPrivate}
+                      type={channel.type}
+                    />
                     <span>{channel.name}</span>
-                    {channel.unreadCount ? <strong>{channel.unreadCount}</strong> : null}
+
+                    {channel.unreadCount ? (
+                      <strong>{channel.unreadCount}</strong>
+                    ) : null}
                   </button>
-                  {channel.type === 'voice' && voiceUsers(channel.id).length ? (
+
+                  {channel.type === 'voice' &&
+                  voiceUsers(channel.id).length ? (
                     <div className="voice-mini-list">
                       {voiceUsers(channel.id).map((user) => (
-                        <span key={user.id}><i className={`avatar avatar-${user.status}`}>{user.avatar}</i>{user.displayName}</span>
+                        <span key={user.id}>
+                          <i
+                            className={`avatar avatar-${user.status}`}
+                          >
+                            {user.avatar}
+                          </i>
+                          {user.displayName}
+                        </span>
                       ))}
                     </div>
                   ) : null}
@@ -164,37 +264,59 @@ export function ChannelSidebar(props: Props) {
           )
         })}
 
-        {props.serverCategories.filter((category) => category.serverId === activeServer.id).map((category) => {
-          const groupedChannels = activeServer.channels.filter((channel) => channel.categoryId === category.id)
+        {props.serverCategories
+          .filter((c) => c.serverId === activeServer.id)
+          .map((category) => {
+            const groupedChannels = activeServer.channels.filter(
+              (ch) => ch.categoryId === category.id,
+            )
 
-          return (
-            <section className="channel-group custom-channel-group" key={category.id}>
-              <div className="channel-group-title">
-                <span>{category.name.toUpperCase()}</span>
-                <button
-                  disabled={!canCreate}
-                  type="button"
-                  onClick={() => openCreateChannelModal({ category: 'text', categoryId: category.id, defaultType: 'text' })}
-                  title={canCreate ? 'Создать канал' : 'Недостаточно прав'}
-                >
-                  <Plus size={15} />
-                </button>
-              </div>
-              {groupedChannels.map((channel) => (
-                <button
-                  className={`channel-row ${channel.id === activeChannelId ? 'is-active' : ''}`}
-                  key={channel.id}
-                  type="button"
-                  onClick={() => selectChannel(channel.id)}
-                >
-                  <ChannelIcon isPrivate={channel.isPrivate} type={channel.type} />
-                  <span>{channel.name}</span>
-                </button>
-              ))}
-              {!groupedChannels.length ? <p>Каналов пока нет</p> : null}
-            </section>
-          )
-        })}
+            return (
+              <section
+                className="channel-group custom-channel-group"
+                key={category.id}
+              >
+                <div className="channel-group-title">
+                  <span>{category.name.toUpperCase()}</span>
+
+                  <button
+                    disabled={!canCreate}
+                    type="button"
+                    onClick={() =>
+                      openCreateChannelModal({
+                        category: 'text',
+                        categoryId: category.id,
+                        defaultType: 'text',
+                      })
+                    }
+                  >
+                    <Plus size={15} />
+                  </button>
+                </div>
+
+                {groupedChannels.map((channel) => (
+                  <button
+                    key={channel.id}
+                    className={`channel-row ${
+                      channel.id === activeChannelId ? 'is-active' : ''
+                    }`}
+                    type="button"
+                    onClick={() => selectChannel(channel.id)}
+                  >
+                    <ChannelIcon
+                      isPrivate={channel.isPrivate}
+                      type={channel.type}
+                    />
+                    <span>{channel.name}</span>
+                  </button>
+                ))}
+
+                {!groupedChannels.length && (
+                  <p>Каналов пока нет</p>
+                )}
+              </section>
+            )
+          })}
       </nav>
 
       <UserProfileBar {...props} />
