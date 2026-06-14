@@ -1,3 +1,4 @@
+```ts
 const TOKEN_STORAGE_KEY = 'nexus.token'
 const CURRENT_USER_STORAGE_KEY = 'nexus.currentUser'
 const SESSION_STORAGE_KEY = 'nexus.auth.session.v1'
@@ -5,7 +6,9 @@ const LEGACY_SESSION_STORAGE_KEY = 'nexus.auth.v1'
 const SETTINGS_STORAGE_KEY = 'nexus.settings'
 const ACTIVITY_STORAGE_KEY = 'nexus.activity'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000'
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  'https://nexus-production-03a7.up.railway.app'
 
 export type NexusUserProfile = {
   avatar: string
@@ -112,6 +115,7 @@ function toNexusUser(user: ApiUser): NexusUser {
 
 function saveSession(token: string, apiUser: ApiUser): NexusAuthSession {
   const currentUser = toNexusUser(apiUser)
+
   const session: NexusAuthSession = {
     currentUser,
     settings: createDefaultSettings(),
@@ -123,15 +127,16 @@ function saveSession(token: string, apiUser: ApiUser): NexusAuthSession {
   window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(session.settings))
   window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session))
   window.localStorage.removeItem(LEGACY_SESSION_STORAGE_KEY)
+
   return session
 }
 
 async function readApiError(response: Response) {
   try {
     const body = (await response.json()) as { message?: string }
-    return body.message || `Request failed with status ${response.status}.`
+    return body.message || `Request failed with status ${response.status}`
   } catch {
-    return `Request failed with status ${response.status}.`
+    return `Request failed with status ${response.status}`
   }
 }
 
@@ -154,8 +159,8 @@ async function apiRequest<T>(path: string, init: RequestInit = {}) {
 export const authService = {
   async register(input: RegisterInput) {
     const result = await apiRequest<AuthResponse>('/api/auth/register', {
-      body: JSON.stringify(input),
       method: 'POST',
+      body: JSON.stringify(input),
     })
 
     return saveSession(result.token, result.user)
@@ -163,8 +168,8 @@ export const authService = {
 
   async login(input: LoginInput) {
     const result = await apiRequest<AuthResponse>('/api/auth/login', {
-      body: JSON.stringify(input),
       method: 'POST',
+      body: JSON.stringify(input),
     })
 
     return saveSession(result.token, result.user)
@@ -178,7 +183,9 @@ export const authService = {
     }
 
     const result = await apiRequest<{ user: ApiUser }>('/api/auth/me', {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     })
 
     return saveSession(token, result.user)
@@ -201,13 +208,20 @@ export const authService = {
   },
 
   getCurrentUser() {
-    const session = safeRead<NexusAuthSession | null>(SESSION_STORAGE_KEY, null)
+    const session = safeRead<NexusAuthSession | null>(
+      SESSION_STORAGE_KEY,
+      null
+    )
+
     if (session) {
       return session
     }
 
     const token = this.getToken()
-    const currentUser = safeRead<NexusUser | null>(CURRENT_USER_STORAGE_KEY, null)
+    const currentUser = safeRead<NexusUser | null>(
+      CURRENT_USER_STORAGE_KEY,
+      null
+    )
 
     if (!token || !currentUser) {
       return null
@@ -228,6 +242,10 @@ export const authService = {
     }
 
     const result = await apiRequest<{ user: ApiUser }>('/api/users/me', {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
       body: JSON.stringify({
         avatar: profile.avatar,
         bio: profile.bio,
@@ -236,22 +254,27 @@ export const authService = {
         status: profile.status,
         username: profile.username,
       }),
-      headers: { Authorization: `Bearer ${token}` },
-      method: 'PATCH',
     })
 
     return saveSession(token, result.user)
   },
 
   async googleLogin() {
-    throw new AuthError('Google OAuth будет подключен через backend следующим шагом. Email/password уже работает через базу данных.')
+    throw new AuthError(
+      'Google OAuth будет подключен позже.'
+    )
   },
 
   async vkLogin() {
-    throw new AuthError('VK OAuth будет подключен через backend следующим шагом. Email/password уже работает через базу данных.')
+    throw new AuthError(
+      'VK OAuth будет подключен позже.'
+    )
   },
 
   async yandexLogin() {
-    throw new AuthError('Yandex OAuth будет подключен через backend следующим шагом. Email/password уже работает через базу данных.')
+    throw new AuthError(
+      'Yandex OAuth будет подключен позже.'
+    )
   },
 }
+```
