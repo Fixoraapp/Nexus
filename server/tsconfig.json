@@ -5,11 +5,17 @@
     "moduleResolution": "Node",
     "rootDir": "src",
     "outDir": "dist",
+
     "strict": true,
     "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "types": ["node"]
+
+    "types": ["node"],
+
+    "ignoreDeprecations": "6.0"
   },
   "include": ["src"]
 }
